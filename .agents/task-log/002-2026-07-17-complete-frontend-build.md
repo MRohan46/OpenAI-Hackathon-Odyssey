@@ -1,0 +1,23 @@
+# Task 002 — Complete Living Shore frontend
+
+- Start time: 2026-07-17 23:36:23 IST
+- Cadence position: task 2 of 3
+- Goal: Build the complete Expo SDK 57 frontend for every product surface defined by `docs/PRODUCT.md`, using the locked Living Shore visual and motion system across the application.
+- Backend boundary: Do not implement backend services. Use realistic local data, typed endpoint contracts, environment-configurable open adapters, and no secrets.
+- Scope: Onboarding and authentication presentation; goals; AI roadmap proposal, edit, review, and acceptance; Today; quest create/detail/complete/photo-proof presentation; calendar; journeys and bosses; rewards; analytics; profile; settings; loading, empty, failure, offline, and reduced-motion states.
+- Expected verification: route and product-spec coverage audit; lint; TypeScript; unit and interaction tests; Expo web export; representative live 390 x 844 browser flows; design QA against the selected reference; responsive, accessibility, reduced-motion, and graphics-fallback checks.
+- Risk level: High. This is a new application scaffold with shared navigation, visual foundations, motion, state contracts, and every primary user workflow.
+- Refined implementation target: `docs/assets/ui/living-shore-today-3d-direction.png`, generated from the user-selected reference with true 3D material, lighting, depth, and motion cues while preserving hierarchy and product semantics.
+- End time: 2026-07-18 01:23:13 IST
+- Result: Complete frontend implementation with 30 Expo Router screen/layout files, shared Living Shore design system, working presentation flows, capability-safe 3D, typed open backend adapters, and repository design-QA evidence.
+- Verification performed:
+  - `npm run lint` — passed.
+  - `npm run typecheck` — passed.
+  - `npm test -- --runInBand` — 3 suites and 7 tests passed.
+  - `npm run export:web` — passed; Expo production web bundle exported to ignored `dist/`.
+  - `npx expo install --check` — passed against the live SDK compatibility map after aligning `@types/jest` to 29.5.14.
+  - `npx expo-doctor` — 20 of 20 checks passed after removing an invalid SDK 57 config property.
+  - Chrome DevTools mobile smoke — passed at 390 x 844 and 320 x 700 for primary navigation, completion receipt, roadmap proposal/edit/accept, tab navigation, persistent accessibility preferences, WebGL scene, no-WebGL fallback, and console review.
+  - `design-qa.md` — final result passed with no open P0, P1, or P2 findings.
+- Known non-blocking risk: `npm audit --omit=dev` reports 11 moderate advisories through Expo's transitive `xcode -> uuid` toolchain. Its only automated fix is a breaking downgrade to Expo 46, so no unsafe forced downgrade was applied. React Three Fiber also triggers one upstream Three r185 Clock deprecation warning in development; production export and runtime behavior are unaffected.
+- Cadence note: This is task 2 of 3, but the full available frontend suite was run because the task is high-risk and establishes the application foundation.

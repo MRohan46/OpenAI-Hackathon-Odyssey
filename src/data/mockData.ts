@@ -1,0 +1,325 @@
+import type {
+  AppPreferences,
+  Goal,
+  GoalAnalytics,
+  HabitAnalytics,
+  NotificationItem,
+  OverallAnalytics,
+  Quest,
+  RoadmapLevel,
+  RewardInventory,
+  UserProfile,
+} from '../types/domain';
+
+const roadmapTitles = [
+  'Map the syllabus',
+  'Build the rhythm',
+  'Foundation Trial',
+  'Strengthen weak topics',
+  'Midpoint proof',
+  'Mock Exam I',
+  'Precision training',
+  'Full Paper Trial',
+  'Close the gaps',
+  'Examination Ready',
+] as const;
+
+export const mathematicsRoadmap: RoadmapLevel[] = roadmapTitles.map((title, index) => {
+  const number = index + 1;
+  const bossType = number === 10 ? 'final' : [3, 6, 8].includes(number) ? 'mini' : 'none';
+  return {
+    id: `math-level-${number}`,
+    number,
+    title,
+    purpose:
+      number < 4
+        ? 'Create a dependable base and reveal the highest-value gaps.'
+        : number < 8
+          ? 'Turn consistent practice into measurable examination performance.'
+          : 'Convert preparation into calm, repeatable mastery.',
+    status: number < 4 ? 'completed' : number === 4 ? 'active' : 'locked',
+    milestone:
+      bossType === 'none'
+        ? `Complete the core evidence for level ${number}.`
+        : number === 10
+          ? 'Demonstrate complete examination readiness.'
+          : 'Complete a timed assessment and review every mistake.',
+    bossType,
+    bossName:
+      bossType === 'none'
+        ? undefined
+        : number === 10
+          ? 'The Final Examination'
+          : `Trial of Level ${number}`,
+    bossHealth: bossType === 'none' ? undefined : number < 4 ? 0 : number === 6 ? 62 : 100,
+    habits: ['Focused study', 'Formula review'],
+    tasks: ['Complete the level assessment', 'Review mistakes'],
+  };
+});
+
+export const initialProfile: UserProfile = {
+  id: 'user-maya',
+  name: 'Maya',
+  handle: '@maya.moves',
+  accountLevel: 14,
+  xp: 7280,
+  xpToNextLevel: 8000,
+  overallStreak: 14,
+  avatarSeed: 'shore-sunrise',
+  selectedCosmetic: 'Sea Glass Halo',
+};
+
+export const initialGoals: Goal[] = [
+  {
+    id: 'goal-math',
+    title: 'Become fully prepared for the mathematics examination',
+    shortTitle: 'Mathematics Exam',
+    description: 'Build mastery through focused practice, mock papers, and honest review.',
+    deadline: '2026-09-25',
+    currentLevel: 4,
+    progress: 42,
+    accent: '#FFC72C',
+    status: 'active',
+    bossName: 'Study Boss',
+    bossHealth: 62,
+    roadmap: mathematicsRoadmap,
+  },
+  {
+    id: 'goal-fitness',
+    title: 'Build a consistent strength and mobility practice',
+    shortTitle: 'Stronger Every Week',
+    description: 'Train sustainably, recover well, and make consistency visible.',
+    deadline: '2026-10-30',
+    currentLevel: 7,
+    progress: 68,
+    accent: '#18B8C8',
+    status: 'active',
+    bossName: 'Endurance Tide',
+    bossHealth: 34,
+    roadmap: mathematicsRoadmap.map((level) => ({
+      ...level,
+      id: `fitness-level-${level.number}`,
+      title: level.number === 7 ? 'Sustained strength' : level.title,
+    })),
+  },
+  {
+    id: 'goal-portfolio',
+    title: 'Ship a portfolio that represents my best creative work',
+    shortTitle: 'Creative Portfolio',
+    description: 'Select, refine, write, and publish a focused body of work.',
+    deadline: '2026-11-20',
+    currentLevel: 3,
+    progress: 23,
+    accent: '#FF715B',
+    status: 'active',
+    bossName: 'Blank Canvas',
+    bossHealth: 81,
+    roadmap: mathematicsRoadmap.map((level) => ({
+      ...level,
+      id: `portfolio-level-${level.number}`,
+      title: level.number === 3 ? 'Curation Trial' : level.title,
+    })),
+  },
+];
+
+export const initialQuests: Quest[] = [
+  {
+    id: 'quest-formulas',
+    goalId: 'goal-math',
+    title: 'Formula review',
+    description: 'Review the calculus formula deck and mark uncertain items.',
+    kind: 'habit',
+    status: 'completed',
+    scheduledAt: '2026-07-17T06:30:00+05:30',
+    durationMinutes: 20,
+    priority: 'medium',
+    plannedIntensity: 'light',
+    actualIntensity: 'normal',
+    recurrence: 'Weekdays',
+    proofPolicy: 'optional',
+    rewardXp: 35,
+    rewardRubies: 4,
+    bossDamage: 2,
+    completedAt: '2026-07-17T06:52:00+05:30',
+  },
+  {
+    id: 'quest-calculus',
+    goalId: 'goal-math',
+    title: 'Calculus Focus Session',
+    description: 'Complete the chain-rule problem set without notes, then review mistakes.',
+    kind: 'habit',
+    status: 'scheduled',
+    scheduledAt: '2026-07-17T19:00:00+05:30',
+    deadlineAt: '2026-07-17T20:15:00+05:30',
+    durationMinutes: 45,
+    priority: 'high',
+    plannedIntensity: 'intense',
+    recurrence: 'Monday, Wednesday, Friday',
+    proofPolicy: 'optional',
+    rewardXp: 90,
+    rewardRubies: 12,
+    bossDamage: 7,
+  },
+  {
+    id: 'quest-timed',
+    goalId: 'goal-math',
+    title: 'Timed problems',
+    description: 'Solve five mixed problems under examination timing.',
+    kind: 'task',
+    status: 'upcoming',
+    scheduledAt: '2026-07-17T20:30:00+05:30',
+    deadlineAt: '2026-07-17T21:30:00+05:30',
+    durationMinutes: 35,
+    priority: 'high',
+    plannedIntensity: 'normal',
+    proofPolicy: 'none',
+    rewardXp: 70,
+    rewardRubies: 9,
+    bossDamage: 5,
+  },
+  {
+    id: 'quest-mobility',
+    goalId: 'goal-fitness',
+    title: 'Evening mobility',
+    description: 'A gentle full-body mobility sequence.',
+    kind: 'habit',
+    status: 'overdue',
+    scheduledAt: '2026-07-17T17:30:00+05:30',
+    durationMinutes: 15,
+    priority: 'medium',
+    plannedIntensity: 'light',
+    recurrence: 'Daily',
+    proofPolicy: 'none',
+    rewardXp: 25,
+    rewardRubies: 3,
+    bossDamage: 1,
+  },
+];
+
+export const initialRewards: RewardInventory = {
+  rubies: 386,
+  unopenedChests: 2,
+  streakProtection: 1,
+  boosts: [
+    {
+      id: 'boost-focus',
+      name: 'Deep Focus',
+      description: 'Adds a modest XP bonus to one completed Intense quest.',
+      quantity: 2,
+    },
+    {
+      id: 'boost-recovery',
+      name: 'Second Wind',
+      description: 'Supports a recovery day without completing work for you.',
+      quantity: 1,
+    },
+  ],
+  cosmetics: [
+    {
+      id: 'cosmetic-halo',
+      name: 'Sea Glass Halo',
+      description: 'A quiet turquoise profile ring earned at level 12.',
+      unlocked: true,
+      selected: true,
+    },
+    {
+      id: 'cosmetic-sun',
+      name: 'Sunwake Frame',
+      description: 'A warm profile frame earned from a mini-boss victory.',
+      unlocked: true,
+      selected: false,
+    },
+    {
+      id: 'cosmetic-tide',
+      name: 'Moon Tide',
+      description: 'Complete another Odyssey to unlock.',
+      unlocked: false,
+      selected: false,
+    },
+  ],
+};
+
+export const initialNotifications: NotificationItem[] = [
+  {
+    id: 'notice-1',
+    title: 'Your focus quest begins soon',
+    body: 'Calculus Focus Session starts at 7:00 PM.',
+    createdAt: '2026-07-17T18:45:00+05:30',
+    read: false,
+    kind: 'scheduled',
+  },
+  {
+    id: 'notice-2',
+    title: 'A calm return is still progress',
+    body: 'Evening mobility is overdue. Reschedule it or complete it when ready.',
+    createdAt: '2026-07-17T18:05:00+05:30',
+    read: false,
+    kind: 'overdue',
+  },
+  {
+    id: 'notice-3',
+    title: 'Formula review completed',
+    body: '35 XP and 4 rubies were confirmed.',
+    createdAt: '2026-07-17T06:52:00+05:30',
+    read: true,
+    kind: 'reward',
+  },
+];
+
+export const initialPreferences: AppPreferences = {
+  reducedMotionOverride: 'system',
+  haptics: true,
+  highContrast: false,
+  graphicsQuality: 'auto',
+  questReminders: true,
+  deadlineReminders: true,
+  overdueReminders: true,
+  reminderLeadMinutes: 15,
+};
+
+export const overallAnalytics: OverallAnalytics = {
+  period: 'week',
+  questsCompleted: 24,
+  completionRate: 86,
+  consistency: 91,
+  xpEarned: 920,
+  rubiesEarned: 118,
+  intensity: { light: 7, normal: 12, intense: 5 },
+  daily: [
+    { label: 'Mon', value: 78 },
+    { label: 'Tue', value: 92 },
+    { label: 'Wed', value: 84 },
+    { label: 'Thu', value: 100 },
+    { label: 'Fri', value: 72 },
+    { label: 'Sat', value: 0 },
+    { label: 'Sun', value: 0 },
+  ],
+};
+
+export const habitAnalytics: HabitAnalytics = {
+  habitId: 'quest-calculus',
+  currentStreak: 8,
+  longestStreak: 15,
+  scheduled: 12,
+  completed: 10,
+  missed: 2,
+  intensity: { light: 2, normal: 5, intense: 3 },
+  weekly: [
+    { day: 'Mon', planned: 3, actual: 3 },
+    { day: 'Tue', planned: 0, actual: 0 },
+    { day: 'Wed', planned: 3, actual: 2 },
+    { day: 'Thu', planned: 0, actual: 0 },
+    { day: 'Fri', planned: 3, actual: 0 },
+    { day: 'Sat', planned: 0, actual: 0 },
+    { day: 'Sun', planned: 0, actual: 0 },
+  ],
+};
+
+export const goalAnalytics: GoalAnalytics = {
+  goalId: 'goal-math',
+  roadmapProgress: 42,
+  completedStages: 3,
+  connectedQuestCompletion: 84,
+  bossHealth: 62,
+  deadlineProgress: 31,
+};

@@ -49,7 +49,7 @@ The locked principles are:
 
 ## 2. North-star reference
 
-![Living Shore Today screen direction](assets/ui/living-shore-today-direction.png)
+![Living Shore Today screen direction](assets/ui/living-shore-today-3d-direction.png)
 
 This image locks:
 
