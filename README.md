@@ -1,8 +1,8 @@
-# Odyssey V1
+# Odyssey
 
 > **From Zero to Hero, One Quest at a Time.**
 
-Odyssey V1 is a gamified habit tracker and calendar that turns long-term goals into daily quests.
+Odyssey is a gamified habit tracker and calendar that turns long-term goals into daily quests.
 
 Most habit trackers record only whether a habit was completed. Odyssey also considers **priority, consistency, intensity, and meaningful progress**. It connects the work someone does today with the goal they want to reach months from now.
 

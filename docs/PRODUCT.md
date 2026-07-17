@@ -1,4 +1,4 @@
-# Odyssey V1
+# Odyssey
 
 > **From Zero to Hero, One Quest at a Time.**
 
@@ -12,7 +12,7 @@ Doing ten minutes of distracted study and completing a focused ninety-minute ses
 
 That difference is where Odyssey begins.
 
-**Odyssey V1 is a gamified calendar, habit tracker, and long-term goal system that measures consistency, intensity, priority, and real progress.** It turns daily habits into quests, meaningful milestones into mini-bosses, and the goal waiting at the end of the journey into a final boss worth defeating.
+**Odyssey is a gamified calendar, habit tracker, and long-term goal system that measures consistency, intensity, priority, and real progress.** It turns daily habits into quests, meaningful milestones into mini-bosses, and the goal waiting at the end of the journey into a final boss worth defeating.
 
 Odyssey is a productivity system with a game at its heart, built around a simple belief:
 
@@ -299,7 +299,7 @@ When creating or editing a habit, the user chooses whether proof is:
 
 Proof images are attached to individual completion records and stored through Supabase. They exist for personal accountability, not public performance.
 
-Odyssey V1 does not pretend that an AI can reliably judge every real-world activity from a photograph. The image is stored as evidence for the user; it is not automatically treated as unquestionable truth by a machine.
+Odyssey does not pretend that an AI can reliably judge every real-world activity from a photograph. The image is stored as evidence for the user; it is not automatically treated as unquestionable truth by a machine.
 
 The point is accountability without pretending that one photograph can tell the whole story.
 
@@ -466,7 +466,7 @@ Users receive them through real progress:
 - Defeating final bosses
 - Opening reward chests
 
-Rubies are not purchased with real money in Odyssey V1. They are earned through progress. If a user has rubies, the application should be able to point toward the effort that earned them.
+Rubies are not purchased with real money in Odyssey. They are earned through progress. If a user has rubies, the application should be able to point toward the effort that earned them.
 
 Rubies can unlock boosts, streak protection, chests, and cosmetic profile decorations. They make the reward system flexible without confusing currency with permanent growth.
 
@@ -597,7 +597,7 @@ This README defines what Odyssey does. The dedicated UI specification defines ho
 
 ## Technology
 
-Odyssey V1 uses a mobile-first stack that keeps development fast without sacrificing a path toward a dependable application.
+Odyssey uses a mobile-first stack that keeps development fast without sacrificing a path toward a dependable application.
 
 | Layer | Technology | Responsibility |
 | --- | --- | --- |
@@ -658,9 +658,9 @@ Gamification can be playful. Trust cannot.
 
 ---
 
-## Odyssey V1 at a Glance
+## Odyssey at a Glance
 
-Odyssey V1 brings the complete journey together:
+Odyssey brings the complete journey together:
 
 - A dedicated habit and task calendar
 - A priority-driven Daily Quest Board
