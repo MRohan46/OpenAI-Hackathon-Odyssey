@@ -133,6 +133,9 @@ must remain kind.
   notification checks, mobile UI review, live smoke, and deployment discipline
   together.
 - Prefer specialized skills and proven local scripts over generic guessing.
+- Do not use Graphify for Odyssey work. Inspect live source, tests, runtime
+  evidence, and repository-native search directly; historical `graphify-out/`
+  artifacts are neither required nor authoritative.
 - If an available skill or tool seems relevant but cannot be used because it is
   missing, blocked, unsafe, outdated, or incompatible with the task, log that
   explicitly and continue with the best fallback.
