@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'expo-router';
-import { LogIn } from 'lucide-react-native';
+import { Globe2, LogIn } from 'lucide-react-native';
 import React, { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { StyleSheet, View } from 'react-native';
@@ -20,8 +20,9 @@ type FormValues = z.infer<typeof schema>;
 
 export default function SignInScreen() {
   const router = useRouter();
-  const { signIn } = useApp();
+  const { signIn, signInWithGoogle } = useApp();
   const [apiError, setApiError] = useState<string | null>(null);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const { control, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: { email: 'maya@example.com', password: 'odyssey' },
@@ -33,6 +34,14 @@ export default function SignInScreen() {
     if (error) setApiError(error);
     else router.replace('/(tabs)/today');
   });
+  const continueWithGoogle = async () => {
+    setApiError(null);
+    setGoogleLoading(true);
+    const error = await signInWithGoogle();
+    setGoogleLoading(false);
+    if (error) setApiError(error);
+    else router.replace('/(tabs)/today');
+  };
 
   return (
     <LivingScreen dim={0.28}>
@@ -50,6 +59,7 @@ export default function SignInScreen() {
         )} />
         {apiError ? <Typography variant="micro" color={colors.coralText}>{apiError}</Typography> : null}
         <Button label="Enter Odyssey" icon={LogIn} onPress={submit} loading={isSubmitting} />
+        <Button label="Continue with Google" icon={Globe2} variant="secondary" onPress={continueWithGoogle} loading={googleLoading} disabled={isSubmitting} />
         <Button label="Create a new account" variant="ghost" onPress={() => router.replace('/sign-up')} />
       </Surface>
     </LivingScreen>

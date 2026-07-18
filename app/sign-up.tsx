@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'expo-router';
-import { ArrowRight } from 'lucide-react-native';
+import { ArrowRight, Globe2 } from 'lucide-react-native';
 import React, { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { StyleSheet, View } from 'react-native';
@@ -24,18 +24,31 @@ type FormValues = z.infer<typeof schema>;
 
 export default function SignUpScreen() {
   const router = useRouter();
-  const { signUp } = useApp();
+  const { signUp, signInWithGoogle } = useApp();
   const [apiError, setApiError] = useState<string | null>(null);
+  const [confirmationMessage, setConfirmationMessage] = useState<string | null>(null);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const { control, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: { name: 'Maya', email: 'maya@example.com', password: 'odyssey!' },
   });
   const submit = handleSubmit(async (values) => {
     setApiError(null);
-    const error = await signUp(values.name, values.email, values.password);
-    if (error) setApiError(error);
+    setConfirmationMessage(null);
+    const result = await signUp(values.name, values.email, values.password);
+    if (result.error) setApiError(result.error);
+    else if (result.confirmationRequired) setConfirmationMessage('Check your email to confirm your account, then return to Odyssey to sign in.');
     else router.replace('/goal/new');
   });
+  const continueWithGoogle = async () => {
+    setApiError(null);
+    setConfirmationMessage(null);
+    setGoogleLoading(true);
+    const error = await signInWithGoogle();
+    setGoogleLoading(false);
+    if (error) setApiError(error);
+    else router.replace('/goal/new');
+  };
   return (
     <LivingScreen dim={0.28}>
       <ScreenHeader back eyebrow="New journey" />
@@ -48,7 +61,9 @@ export default function SignUpScreen() {
         <Controller control={control} name="email" render={({ field: { onChange, value } }) => <Field label="Email" value={value} onChangeText={onChange} autoCapitalize="none" keyboardType="email-address" error={errors.email?.message} />} />
         <Controller control={control} name="password" render={({ field: { onChange, value } }) => <Field label="Password" value={value} onChangeText={onChange} secureTextEntry error={errors.password?.message} />} />
         {apiError ? <Typography variant="micro" color={colors.coralText}>{apiError}</Typography> : null}
+        {confirmationMessage ? <Typography variant="micro" color={colors.success}>{confirmationMessage}</Typography> : null}
         <Button label="Choose my destination" icon={ArrowRight} onPress={submit} loading={isSubmitting} />
+        <Button label="Continue with Google" icon={Globe2} variant="secondary" onPress={continueWithGoogle} loading={googleLoading} disabled={isSubmitting} />
         <Button label="I already have an account" variant="ghost" onPress={() => router.replace('/sign-in')} />
       </Surface>
     </LivingScreen>

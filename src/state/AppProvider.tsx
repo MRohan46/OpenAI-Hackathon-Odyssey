@@ -1,6 +1,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
+import * as Linking from 'expo-linking';
+import * as WebBrowser from 'expo-web-browser';
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { AppState, Platform } from 'react-native';
 
 import { odysseyApi, type ChestReceipt, type CompletionReceipt } from '../api';
 import {
@@ -25,10 +28,17 @@ import type {
   RoadmapLevel,
   UserProfile,
 } from '../types/domain';
+import { supabase, SUPABASE_CONFIGURATION_ERROR } from '../lib/supabase';
 
 const PREFERENCES_KEY = 'odyssey.preferences.v1';
 
+WebBrowser.maybeCompleteAuthSession();
+
 export type AsyncActionState = 'idle' | 'pending' | 'confirmed' | 'failed';
+export interface SignUpResult {
+  error: string | null;
+  confirmationRequired: boolean;
+}
 
 export interface NewQuestInput {
   title: string;
@@ -53,6 +63,7 @@ interface AppContextValue {
   notifications: NotificationItem[];
   preferences: AppPreferences;
   signedIn: boolean;
+  authLoading: boolean;
   activeRoadmapDraft: RoadmapDraft | null;
   activeProofUri: string | null;
   completionState: AsyncActionState;
@@ -61,7 +72,8 @@ interface AppContextValue {
   chestState: AsyncActionState;
   chestReceipt: ChestReceipt | null;
   signIn(email: string, password: string): Promise<string | null>;
-  signUp(name: string, email: string, password: string): Promise<string | null>;
+  signUp(name: string, email: string, password: string): Promise<SignUpResult>;
+  signInWithGoogle(): Promise<string | null>;
   signOut(): Promise<void>;
   generateRoadmap(input: Omit<RoadmapDraft, 'levels'>): Promise<string | null>;
   updateRoadmapLevel(levelId: string, input: Partial<RoadmapLevel>): void;
@@ -88,6 +100,18 @@ interface AppContextValue {
 
 const AppContext = createContext<AppContextValue | null>(null);
 
+const userProfile = (user: { id: string; email?: string; user_metadata?: Record<string, unknown> }): UserProfile => {
+  const displayName = typeof user.user_metadata?.full_name === 'string'
+    ? user.user_metadata.full_name
+    : typeof user.user_metadata?.name === 'string'
+      ? user.user_metadata.name
+      : user.email?.split('@')[0] ?? 'Odyssey traveler';
+  const handle = user.email?.split('@')[0]?.replace(/[^a-z0-9_]/gi, '').toLowerCase() || 'traveler';
+  return { ...structuredClone(initialProfile), id: user.id, name: displayName, handle: `@${handle}`, avatarSeed: user.id };
+};
+
+const authError = (message?: string) => message ?? 'Odyssey could not complete authentication. Please try again.';
+
 export function AppProvider({ children }: React.PropsWithChildren) {
   const [profile, setProfile] = useState<UserProfile>(structuredClone(initialProfile));
   const [goals, setGoals] = useState<Goal[]>(structuredClone(initialGoals));
@@ -97,6 +121,7 @@ export function AppProvider({ children }: React.PropsWithChildren) {
   const [notifications, setNotifications] = useState<NotificationItem[]>(structuredClone(initialNotifications));
   const [preferences, setPreferences] = useState<AppPreferences>(structuredClone(initialPreferences));
   const [signedIn, setSignedIn] = useState(false);
+  const [authLoading, setAuthLoading] = useState(() => Boolean(supabase));
   const [activeRoadmapDraft, setActiveRoadmapDraft] = useState<RoadmapDraft | null>(null);
   const [activeProofUri, setActiveProofUri] = useState<string | null>(null);
   const [completionState, setCompletionState] = useState<AsyncActionState>('idle');
@@ -118,6 +143,34 @@ export function AppProvider({ children }: React.PropsWithChildren) {
       });
   }, []);
 
+  useEffect(() => {
+    const client = supabase;
+    if (!client) return;
+
+    let mounted = true;
+    const setSession = (session: Awaited<ReturnType<typeof client.auth.getSession>>['data']['session']) => {
+      if (!mounted) return;
+      setSignedIn(Boolean(session?.user));
+      if (session?.user) setProfile(userProfile(session.user));
+      setAuthLoading(false);
+    };
+
+    client.auth.getSession().then(({ data }) => setSession(data.session)).catch(() => setSession(null));
+    const { data: subscription } = client.auth.onAuthStateChange((_event, session) => setSession(session));
+    const appStateSubscription = Platform.OS === 'web'
+      ? undefined
+      : AppState.addEventListener('change', (state) => {
+          if (state === 'active') client.auth.startAutoRefresh();
+          else client.auth.stopAutoRefresh();
+        });
+
+    return () => {
+      mounted = false;
+      subscription.subscription.unsubscribe();
+      appStateSubscription?.remove();
+    };
+  }, []);
+
   const haptic = useCallback(
     async (kind: 'selection' | 'success' = 'selection') => {
       if (!preferences.haptics) return;
@@ -135,24 +188,62 @@ export function AppProvider({ children }: React.PropsWithChildren) {
   );
 
   const signIn = useCallback(async (email: string, password: string) => {
-    const result = await odysseyApi.auth.signIn(email, password);
-    if (!result.ok) return result.error.message;
-    setProfile(result.data.user);
-    setSignedIn(true);
-    return null;
+    if (!supabase) return SUPABASE_CONFIGURATION_ERROR;
+    const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+    return error ? authError(error.message) : null;
   }, []);
 
   const signUp = useCallback(async (name: string, email: string, password: string) => {
-    const result = await odysseyApi.auth.signUp(name, email, password);
-    if (!result.ok) return result.error.message;
-    setProfile(result.data.user);
-    setSignedIn(true);
-    return null;
+    if (!supabase) return { error: SUPABASE_CONFIGURATION_ERROR, confirmationRequired: false };
+    const { data, error } = await supabase.auth.signUp({
+      email: email.trim(),
+      password,
+      options: { data: { name: name.trim() }, emailRedirectTo: Linking.createURL('auth/callback') },
+    });
+    return { error: error ? authError(error.message) : null, confirmationRequired: !error && !data.session };
+  }, []);
+
+  const signInWithGoogle = useCallback(async () => {
+    if (!supabase) return SUPABASE_CONFIGURATION_ERROR;
+    const redirectTo = Linking.createURL('auth/callback');
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo, skipBrowserRedirect: true },
+    });
+    if (error || !data.url) return authError(error?.message);
+
+    const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
+    if (result.type !== 'success') {
+      return result.type === 'cancel' || result.type === 'dismiss'
+        ? 'Google sign-in was cancelled.'
+        : 'Google sign-in did not complete. Please try again.';
+    }
+
+    const callback = new URL(result.url);
+    const code = callback.searchParams.get('code');
+    if (code) {
+      const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+      return exchangeError ? authError(exchangeError.message) : null;
+    }
+
+    const tokens = new URLSearchParams(callback.hash.replace(/^#/, ''));
+    const accessToken = tokens.get('access_token');
+    const refreshToken = tokens.get('refresh_token');
+    if (!accessToken || !refreshToken) return 'Google did not return a valid Odyssey session.';
+    const { error: sessionError } = await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
+    return sessionError ? authError(sessionError.message) : null;
   }, []);
 
   const signOut = useCallback(async () => {
-    await odysseyApi.auth.signOut();
+    if (supabase) await supabase.auth.signOut();
     setSignedIn(false);
+    setProfile(structuredClone(initialProfile));
+    setGoals(structuredClone(initialGoals));
+    setQuests(structuredClone(initialQuests));
+    setRewards(structuredClone(initialRewards));
+    setNotifications(structuredClone(initialNotifications));
+    setActiveRoadmapDraft(null);
+    setActiveProofUri(null);
   }, []);
 
   const generateRoadmap = useCallback(async (input: Omit<RoadmapDraft, 'levels'>) => {
@@ -410,6 +501,7 @@ export function AppProvider({ children }: React.PropsWithChildren) {
       notifications,
       preferences,
       signedIn,
+      authLoading,
       activeRoadmapDraft,
       activeProofUri,
       completionState,
@@ -419,6 +511,7 @@ export function AppProvider({ children }: React.PropsWithChildren) {
       chestReceipt,
       signIn,
       signUp,
+      signInWithGoogle,
       signOut,
       generateRoadmap,
       updateRoadmapLevel,
@@ -451,6 +544,7 @@ export function AppProvider({ children }: React.PropsWithChildren) {
       notifications,
       preferences,
       signedIn,
+      authLoading,
       activeRoadmapDraft,
       activeProofUri,
       completionState,
@@ -460,6 +554,7 @@ export function AppProvider({ children }: React.PropsWithChildren) {
       chestReceipt,
       signIn,
       signUp,
+      signInWithGoogle,
       signOut,
       generateRoadmap,
       updateRoadmapLevel,

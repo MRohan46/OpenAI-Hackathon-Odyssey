@@ -15,7 +15,13 @@
       "expo-asset",
       "expo-image",
       "expo-localization",
-      "expo-splash-screen"
+      "expo-splash-screen",
+      [
+        "expo-web-browser",
+        {
+          "experimentalLauncherActivity": false
+        }
+      ]
     ],
     "ios": {
       "supportsTablet": true
