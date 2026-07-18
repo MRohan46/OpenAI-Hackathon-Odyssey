@@ -26,13 +26,28 @@ SplashScreen.preventAutoHideAsync().catch(() => undefined);
 
 export default function RootLayout() {
   const [queryClient] = useState(() => new QueryClient({ defaultOptions: { queries: { retry: 1 } } }));
-  const [bricolageLoaded] = useBricolageFonts({ BricolageGrotesque_600SemiBold, BricolageGrotesque_700Bold });
-  const [manropeLoaded] = useManropeFonts({ Manrope_400Regular, Manrope_500Medium, Manrope_600SemiBold, Manrope_700Bold });
-  const ready = bricolageLoaded && manropeLoaded;
+  const [bricolageLoaded, bricolageError] = useBricolageFonts({
+    BricolageGrotesque_600SemiBold,
+    BricolageGrotesque_700Bold,
+  });
+  const [manropeLoaded, manropeError] = useManropeFonts({
+    Manrope_400Regular,
+    Manrope_500Medium,
+    Manrope_600SemiBold,
+    Manrope_700Bold,
+  });
+  const fontLoadError = bricolageError ?? manropeError;
+  const ready = (bricolageLoaded && manropeLoaded) || Boolean(fontLoadError);
 
   useEffect(() => {
     if (ready) SplashScreen.hideAsync().catch(() => undefined);
   }, [ready]);
+
+  useEffect(() => {
+    if (fontLoadError) {
+      console.warn('[fonts] Custom fonts failed to load; continuing with platform fallbacks.', fontLoadError);
+    }
+  }, [fontLoadError]);
 
   if (!ready) return null;
 
