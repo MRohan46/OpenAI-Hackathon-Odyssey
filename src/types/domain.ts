@@ -43,6 +43,8 @@ export interface Quest {
   rewardRubies: number;
   bossDamage: number;
   completedAt?: string;
+  seriesId?: string;
+  streakProtected?: boolean;
 }
 
 export interface RoadmapLevel {
@@ -72,6 +74,13 @@ export interface Goal {
   bossName: string;
   bossHealth: number;
   roadmap: RoadmapLevel[];
+  completedAt?: string;
+  victoryNote?: string;
+  startingPoint?: string;
+  availableDays?: string[];
+  minutesPerDay?: number;
+  preferredIntensity?: Intensity;
+  constraints?: string;
 }
 
 export interface RewardInventory {
@@ -89,8 +98,19 @@ export interface RewardInventory {
     description: string;
     unlocked: boolean;
     selected: boolean;
+    rubyPrice?: number;
   }[];
   streakProtection: number;
+  activeBoostId?: string;
+}
+
+export interface RewardLedgerEntry {
+  id: string;
+  createdAt: string;
+  kind: 'quest' | 'chest' | 'boost' | 'cosmetic' | 'streakProtection';
+  title: string;
+  xp: number;
+  rubies: number;
 }
 
 export interface NotificationItem {
@@ -100,6 +120,7 @@ export interface NotificationItem {
   createdAt: string;
   read: boolean;
   kind: 'scheduled' | 'deadline' | 'overdue' | 'reward';
+  targetRoute?: string;
 }
 
 export interface HabitAnalytics {

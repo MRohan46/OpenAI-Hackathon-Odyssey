@@ -6,9 +6,30 @@
 - **Viewport used for rendered checks:** 390 × 844, mobile/touch emulation
 - **Backend assumption:** mocked data and responses are acceptable for this phase; every product capability should still have a findable, understandable UI entry point and a credible interaction path.
 
-## Executive verdict
+## Remediation verdict — 2026-07-19
 
-**No: every documented product feature is not yet integrated into the UI.**
+**Yes for the requested backend-later UI phase: every capability below now has a reachable, understandable, interactive frontend base.**
+
+Task 014 closed the 17 partial shells and 2 missing flows identified by this audit without treating mock state as production persistence. The implemented UI bases now include:
+
+- a date-derived Calendar with distinct Month and Week ranges, working navigation, per-day filtering, and selected-date quest creation;
+- structured local schedule/deadline controls, recurrence rules and preview, complete quest editing, future-series editing, and missed/overdue recovery;
+- deterministic Today ordering by state, deadline, priority, scheduled time, and roadmap relevance, with a visible reason for the featured quest;
+- full proposal and accepted-roadmap editors for purpose, milestone, habits, tasks, reorder, per-level regeneration, and scheduling, while completed stages remain read-only and activation remains explicit;
+- editable goal planning context including starting point, availability, time budget, preferred effort, constraints, and deadline;
+- actionable boosts, eligible-miss streak protection, ruby unlock confirmation, and a reward ledger;
+- final-victory confirmation, a completed-Odyssey section, preserved victory records, and a clear next-Odyssey handoff;
+- derived week/month, habit-specific, and goal-specific analytics with occurrence and private-proof history;
+- notification-to-action navigation after mark-read and explicit empty states for the major collections;
+- corrected decorative-image semantics and quest-card accessible naming. A current 390 × 844 mobile Lighthouse snapshot scored **100 for Accessibility** and **100 for Best Practices**.
+
+Current rendered evidence and the Lighthouse HTML/JSON reports are in `.agents/audits/product-ui-remediation-2026-07-18/`. The browser result remains web evidence, not native VoiceOver/TalkBack or WCAG certification.
+
+Backend ownership is still intentionally outstanding for Supabase authentication/persistence/RLS, recurrence materialization beyond loaded occurrences, private proof upload/storage, Groq generation, notification delivery, and server-authoritative progress/reward calculation. Those systems can replace the typed adapters without redesigning these flows.
+
+## Baseline verdict (before remediation)
+
+At audit commit `092db43e824e7ce5d877f51e82fe63026995ae0c`, every documented product feature was not yet integrated into the UI.
 
 Odyssey has a broad and unusually polished frontend base. All 27 user-facing route screens exist and are connected to the route tree, the four-tab information architecture is coherent, and the central loop—enter the demo, inspect today's work, open a quest, record actual intensity, review goals, and see rewards—was rendered successfully without a backend.
 

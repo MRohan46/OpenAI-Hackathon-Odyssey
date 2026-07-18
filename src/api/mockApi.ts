@@ -104,6 +104,11 @@ export const mockApi: OdysseyApi = {
         bossName: 'The Final Shore',
         bossHealth: 100,
         roadmap: input.levels,
+        startingPoint: input.startingPoint,
+        availableDays: input.availableDays,
+        minutesPerDay: input.minutesPerDay,
+        preferredIntensity: input.preferredIntensity,
+        constraints: input.constraints,
       };
       goals = [goal, ...goals];
       return success(goal);
@@ -243,6 +248,7 @@ export const mockApi: OdysseyApi = {
       }
       rewards = {
         ...rewards,
+        activeBoostId: boostId,
         boosts: rewards.boosts.map((item) =>
           item.id === boostId ? { ...item, quantity: item.quantity - 1 } : item,
         ),
@@ -263,6 +269,36 @@ export const mockApi: OdysseyApi = {
         ...rewards,
         cosmetics: rewards.cosmetics.map((item) => ({ ...item, selected: item.id === cosmeticId })),
       };
+      return success(rewards);
+    },
+    async unlockCosmetic(cosmeticId) {
+      await delay(180);
+      const cosmetic = rewards.cosmetics.find((item) => item.id === cosmeticId);
+      const price = cosmetic?.rubyPrice ?? 0;
+      if (!cosmetic || cosmetic.unlocked || price < 1 || rewards.rubies < price) {
+        return {
+          ok: false,
+          error: { code: 'conflict', message: cosmetic?.unlocked ? 'That cosmetic is already unlocked.' : 'Not enough rubies for that cosmetic.', retryable: false },
+          requestId: requestId(),
+        };
+      }
+      rewards = {
+        ...rewards,
+        rubies: rewards.rubies - price,
+        cosmetics: rewards.cosmetics.map((item) => item.id === cosmeticId ? { ...item, unlocked: true } : item),
+      };
+      return success(rewards);
+    },
+    async useStreakProtection(_questId) {
+      await delay(180);
+      if (rewards.streakProtection < 1) {
+        return {
+          ok: false,
+          error: { code: 'conflict', message: 'No streak protection is available.', retryable: false },
+          requestId: requestId(),
+        };
+      }
+      rewards = { ...rewards, streakProtection: rewards.streakProtection - 1 };
       return success(rewards);
     },
   },

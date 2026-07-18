@@ -73,6 +73,8 @@ export const liveApi: OdysseyApi = {
     openChest: (chestId) => request(endpoints.chest(chestId), json('POST')),
     applyBoost: (boostId) => request(endpoints.boost(boostId), json('POST')),
     selectCosmetic: (cosmeticId) => request(endpoints.cosmetic(cosmeticId), json('POST')),
+    unlockCosmetic: (cosmeticId) => request(endpoints.cosmeticUnlock(cosmeticId), json('POST')),
+    useStreakProtection: (questId) => request(endpoints.streakProtection, json('POST', { questId })),
   },
   analytics: {
     overall: (period) => request(`${endpoints.analyticsOverall}?period=${period}`),

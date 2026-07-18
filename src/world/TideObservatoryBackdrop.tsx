@@ -72,6 +72,9 @@ export function TideObservatoryBackdrop({ reducedMotion, highContrast = false, c
     >
       <Animated.View style={[StyleSheet.absoluteFill, backgroundMotion]}>
         <Image
+          accessible={false}
+          alt=""
+          accessibilityLabel=""
           source={background}
           contentFit={compact ? 'fill' : 'cover'}
           contentPosition={{ top: '50%', left: '75%' }}
@@ -81,10 +84,10 @@ export function TideObservatoryBackdrop({ reducedMotion, highContrast = false, c
         />
       </Animated.View>
       <Animated.View style={[styles.glint, compact && styles.glintCompact, glintMotion]}>
-        <Image source={tideGlint} contentFit="contain" cachePolicy="memory-disk" priority="high" style={StyleSheet.absoluteFill} />
+        <Image accessible={false} alt="" accessibilityLabel="" source={tideGlint} contentFit="contain" cachePolicy="memory-disk" priority="high" style={StyleSheet.absoluteFill} />
       </Animated.View>
       <Animated.View style={[styles.activeIsland, compact && styles.activeIslandCompact, islandMotion]}>
-        <Image source={activeIsland} contentFit="contain" cachePolicy="memory-disk" priority="high" style={StyleSheet.absoluteFill} />
+        <Image accessible={false} alt="" accessibilityLabel="" source={activeIsland} contentFit="contain" cachePolicy="memory-disk" priority="high" style={StyleSheet.absoluteFill} />
       </Animated.View>
       <View style={[styles.skyWash, highContrast && styles.skyWashHighContrast]} />
     </View>

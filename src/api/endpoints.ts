@@ -26,6 +26,8 @@ export const endpoints = {
   chest: (chestId: string) => `/v1/rewards/chests/${chestId}/open`,
   boost: (boostId: string) => `/v1/rewards/boosts/${boostId}/apply`,
   cosmetic: (cosmeticId: string) => `/v1/rewards/cosmetics/${cosmeticId}/select`,
+  cosmeticUnlock: (cosmeticId: string) => `/v1/rewards/cosmetics/${cosmeticId}/unlock`,
+  streakProtection: '/v1/rewards/streak-protection/use',
   analyticsOverall: '/v1/analytics/overall',
   analyticsHabit: (habitId: string) => `/v1/analytics/habits/${habitId}`,
   analyticsGoal: (goalId: string) => `/v1/analytics/goals/${goalId}`,

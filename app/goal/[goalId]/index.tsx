@@ -1,7 +1,7 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { BarChart3, CalendarClock, Pencil, Shield } from 'lucide-react-native';
-import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import { BarChart3, CalendarClock, Pencil, Route, Shield, Trophy } from 'lucide-react-native';
+import React, { useState } from 'react';
+import { Alert, StyleSheet, View } from 'react-native';
 
 import { Button } from '../../../src/components/Button';
 import { Chip } from '../../../src/components/Chip';
@@ -18,10 +18,16 @@ import { formatDate } from '../../../src/utils/format';
 export default function GoalDetailScreen() {
   const { goalId } = useLocalSearchParams<{ goalId: string }>();
   const router = useRouter();
-  const { goals, quests } = useApp();
+  const { goals, quests, completeGoal } = useApp();
   const goal = goals.find((item) => item.id === goalId);
+  const [finishing, setFinishing] = useState(false);
+  const [finishError, setFinishError] = useState<string | null>(null);
   if (!goal) return <LivingScreen dim={0.2}><ScreenHeader back /><EmptyState icon={Shield} title="This Odyssey is beyond the map." message="It may have been archived or the link is no longer current." onAction={() => router.replace('/(tabs)/journey')} actionLabel="Return to journeys" /></LivingScreen>;
   const connected = quests.filter((quest) => quest.goalId === goal.id);
+  const confirmVictory = () => Alert.alert('Complete this Odyssey?', 'The completed roadmap and quest evidence will move into preserved history. Earned progress stays intact.', [
+    { text: 'Keep journey active', style: 'cancel' },
+    { text: 'Confirm victory', onPress: async () => { setFinishing(true); const result = await completeGoal(goal.id); setFinishing(false); if (result) setFinishError(result); else router.replace(`/goal/${goal.id}/victory`); } },
+  ]);
   return (
     <LivingScreen immersive accent={goal.accent} dim={0.1}>
       <ScreenHeader back eyebrow={`Level ${goal.currentLevel} of 10`} />
@@ -31,13 +37,16 @@ export default function GoalDetailScreen() {
         <View style={styles.chips}><Chip label={`${goal.progress}% journey`} tone="water" /><Chip label={`Due ${formatDate(`${goal.deadline}T12:00:00`)}`} tone="sun" /></View>
       </View>
       <Surface tone="ink" padding="large" style={styles.boss}>
-        <View style={styles.bossTop}><View><Typography variant="micro" color={colors.coral}>ACTIVE BOSS</Typography><Typography variant="title" color={colors.white}>{goal.bossName}</Typography></View><Shield size={34} color={colors.coral} /></View>
+        <View style={styles.bossTop}><View><Typography variant="micro" color={goal.status === 'completed' ? colors.sun : colors.coral}>{goal.status === 'completed' ? 'FINAL BOSS DEFEATED' : 'ACTIVE BOSS'}</Typography><Typography variant="title" color={colors.white}>{goal.bossName}</Typography></View><Shield size={34} color={goal.status === 'completed' ? colors.sun : colors.coral} /></View>
         <ProgressBar value={goal.bossHealth} color={colors.coral} trackColor="rgba(255,255,255,0.18)" accessibilityLabel={`${goal.bossName} health`} />
-        <Typography variant="micro" color="rgba(255,255,255,0.72)">{goal.bossHealth}% health remains · only confirmed connected quests deal damage</Typography>
+        <Typography variant="micro" color="rgba(255,255,255,0.72)">{goal.status === 'completed' ? 'Victory confirmed and preserved in history.' : `${goal.bossHealth}% health remains · only confirmed connected quests deal damage`}</Typography>
       </Surface>
+      {goal.status === 'active' && goal.currentLevel === 10 && goal.bossHealth === 0 ? <Button label="Confirm final victory" icon={Trophy} loading={finishing} onPress={confirmVictory} /> : null}
+      {finishError ? <Typography variant="micro" color={colors.coralText}>{finishError}</Typography> : null}
       <View style={styles.actions}>
         <Button label="Goal analytics" icon={BarChart3} variant="secondary" compact onPress={() => router.push(`/analytics/goal/${goal.id}`)} />
-        <Button label="Edit goal" icon={Pencil} variant="secondary" compact onPress={() => router.push(`/goal/${goal.id}/edit`)} />
+        {goal.status === 'active' ? <Button label="Edit goal" icon={Pencil} variant="secondary" compact onPress={() => router.push(`/goal/${goal.id}/edit`)} /> : null}
+        {goal.status === 'active' ? <Button label="Edit route" icon={Route} variant="secondary" compact onPress={() => router.push(`/goal/${goal.id}/roadmap`)} /> : <Button label="Victory record" icon={Trophy} variant="secondary" compact onPress={() => router.push(`/goal/${goal.id}/victory`)} />}
       </View>
       <Typography variant="heading">The ten-level route</Typography>
       <View style={styles.path}>

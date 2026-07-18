@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useId } from 'react';
 import { StyleSheet, TextInput, type TextInputProps, View } from 'react-native';
 
 import { colors, fontFamilies, radii, spacing } from '../theme/tokens';
@@ -11,11 +11,13 @@ interface FieldProps extends TextInputProps {
 }
 
 export function Field({ label, error, help, style, multiline, ...props }: FieldProps) {
+  const generatedId = useId();
   return (
     <View style={styles.wrap}>
       <Typography variant="label">{label}</Typography>
       <TextInput
         {...props}
+        nativeID={props.nativeID ?? generatedId}
         accessibilityLabel={label}
         multiline={multiline}
         placeholderTextColor={colors.inkSecondary}

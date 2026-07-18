@@ -1,6 +1,6 @@
 import { AlertTriangle, Check, Clock3, Flame, LoaderCircle, X } from 'lucide-react-native';
 import React from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, View } from 'react-native';
 
 import type { Quest } from '../types/domain';
 import { titleCase } from '../utils/format';
@@ -14,6 +14,7 @@ interface QuestRoadmapCardProps {
   featured?: boolean;
   onPress: () => void;
   onBegin?: () => void;
+  reason?: string;
 }
 
 const statusColor = {
@@ -47,7 +48,7 @@ function QuestStateIcon({ quest }: { quest: Quest }) {
   );
 }
 
-export function QuestRoadmapCard({ quest, statusText, featured = false, onPress, onBegin }: QuestRoadmapCardProps) {
+export function QuestRoadmapCard({ quest, statusText, featured = false, onPress, onBegin, reason }: QuestRoadmapCardProps) {
   const proofText = quest.proofPolicy === 'none' ? 'No proof' : `${titleCase(quest.proofPolicy)} proof`;
   const scheduleText =
     quest.recurrence
@@ -67,9 +68,10 @@ export function QuestRoadmapCard({ quest, statusText, featured = false, onPress,
     <View style={[styles.frame, featured && styles.featuredFrame]} testID={`roadmap-card-${quest.id}`}>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={`${quest.title}. ${statusText}. ${quest.durationMinutes} minutes. ${titleCase(quest.priority)} priority. ${titleCase(quest.plannedIntensity)} planned. ${quest.rewardXp} XP and ${quest.rewardRubies} rubies.`}
+        accessibilityLabel={Platform.OS === 'web' ? undefined : `${quest.title}. ${statusText}. ${quest.durationMinutes} minutes. ${titleCase(quest.priority)} priority. ${titleCase(quest.plannedIntensity)} planned.`}
         accessibilityHint="Opens quest details"
         onPress={onPress}
+        testID={`roadmap-card-button-${quest.id}`}
         style={({ pressed }) => [styles.card, featured && styles.featuredCard, pressed && styles.pressed]}
       >
         <View style={styles.titleRow}>
@@ -94,6 +96,7 @@ export function QuestRoadmapCard({ quest, statusText, featured = false, onPress,
             {scheduleText} · {proofText}
           </Typography>
         </View>
+        {featured && reason ? <Typography variant="micro" color={colors.waterDeep}>Why now · {reason}</Typography> : null}
       </Pressable>
       {onBegin ? (
         <Button
