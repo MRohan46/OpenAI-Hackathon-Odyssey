@@ -48,6 +48,7 @@
 - A second independent cold start after machine-level installation repeated the same 29-tool, page, snapshot, screenshot, console, network, and clean-shutdown pass.
 - `codex mcp list` parsed the installed TOML and displayed the managed `--headless=true --isolated=true` configuration without `--browserUrl`.
 - The MCP handle already loaded by this conversation remains cached on the former `9223` command and cannot hot-reload. New Codex sessions use the repaired configuration; the independent fresh-client smoke proves that path.
+- A final host process audit found five abandoned `agent-browser` daemon/Chrome trees from earlier fallback-browser sessions, each roughly four to nine hours old. Their exact parent and root-Chrome PIDs were resolved before cleanup; all five trees accepted `SIGTERM`, and a targeted `ps` check confirmed all ten resolved PIDs had exited. No active Codex or session-owned Chrome MCP process was terminated.
 
 ## Remaining unrelated machine note
 
