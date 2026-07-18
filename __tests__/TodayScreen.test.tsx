@@ -19,7 +19,19 @@ jest.mock('lucide-react-native', () => {
   const ReactModule = jest.requireActual<typeof import('react')>('react');
   const { View } = jest.requireActual<typeof import('react-native')>('react-native');
   const Icon = (props: object) => ReactModule.createElement(View, props);
-  return { Bell: Icon, Check: Icon, Flame: Icon, Plus: Icon };
+  return {
+    AlertTriangle: Icon,
+    Bell: Icon,
+    Check: Icon,
+    ChevronDown: Icon,
+    ChevronUp: Icon,
+    Clock3: Icon,
+    Flame: Icon,
+    LoaderCircle: Icon,
+    Plus: Icon,
+    Route: Icon,
+    X: Icon,
+  };
 });
 
 jest.mock('react-native-reanimated', () => {
@@ -50,14 +62,21 @@ describe('Tide Observatory Today screen', () => {
     expect(view.getByText('Study Boss')).toBeTruthy();
     expect(view.getByText('62% health')).toBeTruthy();
     expect(view.getByText('Calculus Focus Session')).toBeTruthy();
-    expect(view.getByText('7:00 PM · 45 min')).toBeTruthy();
+    expect(view.getByText('Scheduled · 7:00 PM–8:15 PM')).toBeTruthy();
+    expect(view.getByText('45 min · High · Intense')).toBeTruthy();
+    expect(view.getByText('90 XP · 12 rubies · 7 damage')).toBeTruthy();
     expect(view.getByText('Completed · 6:52 AM')).toBeTruthy();
-    expect(view.getByText('Upcoming · 8:30 PM')).toBeTruthy();
+    expect(view.getByText('Upcoming · 8:30 PM–9:30 PM')).toBeTruthy();
+    expect(view.getByText('Overdue · 5:30 PM')).toBeTruthy();
+    expect(view.getByTestId('roadmap-card-quest-formulas')).toBeTruthy();
+    expect(view.getByTestId('roadmap-card-quest-calculus')).toBeTruthy();
+    expect(view.getByTestId('roadmap-card-quest-timed')).toBeTruthy();
+    expect(view.getByTestId('roadmap-card-quest-mobility')).toBeTruthy();
     expect(view.getByRole('progressbar', { name: 'Roadmap level 4 of 10' })).toBeTruthy();
     expect(view.getByRole('progressbar', { name: 'Study Boss health' })).toBeTruthy();
   });
 
-  it('keeps the primary and overflow quest paths interactive', async () => {
+  it('keeps the primary action, every quest, and the navigator interactive', async () => {
     const view = await render(
       <AppProvider>
         <TodayScreen />
@@ -67,7 +86,12 @@ describe('Tide Observatory Today screen', () => {
     fireEvent.press(view.getByRole('button', { name: 'Begin quest' }));
     await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/quest/quest-calculus/complete'));
 
-    fireEvent.press(view.getByTestId('overflow-quest-pill'));
+    fireEvent.press(view.getByTestId('quest-navigator-trigger'));
+    await waitFor(() => expect(view.getByTestId('quest-navigator-dropdown')).toBeTruthy());
+    fireEvent.press(view.getByRole('button', { name: /Jump to Evening mobility/ }));
+    await waitFor(() => expect(view.queryByTestId('quest-navigator-dropdown')).toBeNull());
+
+    fireEvent.press(view.getByRole('button', { name: /Evening mobility\. Overdue/ }));
     expect(mockPush).toHaveBeenCalledWith('/quest/quest-mobility');
   });
 });

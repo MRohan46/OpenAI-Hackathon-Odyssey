@@ -13,13 +13,14 @@ import Animated, {
 interface TideObservatoryBackdropProps {
   reducedMotion: boolean;
   highContrast?: boolean;
+  compact?: boolean;
 }
 
-const background = require('../../assets/images/tide-observatory/coastal-route-background.png');
+const background = require('../../assets/images/tide-observatory/coastal-route-scroll-background.png');
 const activeIsland = require('../../assets/images/tide-observatory/active-sun-island.png');
 const tideGlint = require('../../assets/images/tide-observatory/tide-glint.png');
 
-export function TideObservatoryBackdrop({ reducedMotion, highContrast = false }: TideObservatoryBackdropProps) {
+export function TideObservatoryBackdrop({ reducedMotion, highContrast = false, compact = false }: TideObservatoryBackdropProps) {
   const drift = useSharedValue(0);
   const pulse = useSharedValue(0);
 
@@ -72,17 +73,17 @@ export function TideObservatoryBackdrop({ reducedMotion, highContrast = false }:
       <Animated.View style={[StyleSheet.absoluteFill, backgroundMotion]}>
         <Image
           source={background}
-          contentFit="cover"
-          contentPosition="center"
+          contentFit={compact ? 'fill' : 'cover'}
+          contentPosition={{ top: '50%', left: '75%' }}
           cachePolicy="memory-disk"
           priority="high"
           style={StyleSheet.absoluteFill}
         />
       </Animated.View>
-      <Animated.View style={[styles.glint, glintMotion]}>
+      <Animated.View style={[styles.glint, compact && styles.glintCompact, glintMotion]}>
         <Image source={tideGlint} contentFit="contain" cachePolicy="memory-disk" priority="high" style={StyleSheet.absoluteFill} />
       </Animated.View>
-      <Animated.View style={[styles.activeIsland, islandMotion]}>
+      <Animated.View style={[styles.activeIsland, compact && styles.activeIslandCompact, islandMotion]}>
         <Image source={activeIsland} contentFit="contain" cachePolicy="memory-disk" priority="high" style={StyleSheet.absoluteFill} />
       </Animated.View>
       <View style={[styles.skyWash, highContrast && styles.skyWashHighContrast]} />
@@ -94,24 +95,26 @@ const styles = StyleSheet.create({
   nonInteractive: { pointerEvents: 'none' },
   activeIsland: {
     position: 'absolute',
-    left: '25.5%',
-    top: '44.2%',
+    left: '18%',
+    top: 520,
     width: '29%',
     aspectRatio: 1,
   },
+  activeIslandCompact: { left: '31%' },
   glint: {
     position: 'absolute',
-    left: '20.2%',
-    top: '42%',
+    left: '13%',
+    top: 500,
     width: '40%',
     aspectRatio: 1,
   },
+  glintCompact: { left: '23%' },
   skyWash: {
     position: 'absolute',
     left: 0,
     right: 0,
     top: 0,
-    height: '26%',
+    height: 220,
     backgroundColor: 'rgba(223, 245, 255, 0.12)',
   },
   skyWashHighContrast: { backgroundColor: 'rgba(255, 255, 255, 0.28)' },
