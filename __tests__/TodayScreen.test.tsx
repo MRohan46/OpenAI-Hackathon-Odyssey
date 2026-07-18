@@ -59,8 +59,8 @@ describe('Tide Observatory Today screen', () => {
     );
 
     expect(view.getByText('One clear step')).toBeTruthy();
-    expect(view.getByText('Study Boss')).toBeTruthy();
-    expect(view.getByText('62% health')).toBeTruthy();
+    expect(view.getByText('Endurance Tide')).toBeTruthy();
+    expect(view.getByText('34% health')).toBeTruthy();
     expect(view.getByText('Calculus Focus Session')).toBeTruthy();
     expect(view.getByText('Scheduled · 7:00 PM–8:15 PM')).toBeTruthy();
     expect(view.getByText('45 min · High · Intense')).toBeTruthy();
@@ -72,8 +72,8 @@ describe('Tide Observatory Today screen', () => {
     expect(view.getByTestId('roadmap-card-quest-calculus')).toBeTruthy();
     expect(view.getByTestId('roadmap-card-quest-timed')).toBeTruthy();
     expect(view.getByTestId('roadmap-card-quest-mobility')).toBeTruthy();
-    expect(view.getByRole('progressbar', { name: 'Roadmap level 4 of 10' })).toBeTruthy();
-    expect(view.getByRole('progressbar', { name: 'Study Boss health' })).toBeTruthy();
+    expect(view.getByRole('progressbar', { name: 'Roadmap level 7 of 10' })).toBeTruthy();
+    expect(view.getByRole('progressbar', { name: 'Endurance Tide health' })).toBeTruthy();
   });
 
   it('keeps the primary action, every quest, and the navigator interactive', async () => {
@@ -84,14 +84,14 @@ describe('Tide Observatory Today screen', () => {
     );
 
     fireEvent.press(view.getByRole('button', { name: 'Begin quest' }));
-    await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/quest/quest-calculus/complete'));
+    await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/quest/quest-mobility/complete'));
 
     fireEvent.press(view.getByTestId('quest-navigator-trigger'));
     await waitFor(() => expect(view.getByTestId('quest-navigator-dropdown')).toBeTruthy());
     fireEvent.press(view.getByRole('button', { name: /Jump to Evening mobility/ }));
     await waitFor(() => expect(view.queryByTestId('quest-navigator-dropdown')).toBeNull());
 
-    fireEvent.press(view.getByRole('button', { name: /Evening mobility\. Overdue/ }));
+    fireEvent.press(view.getByTestId('roadmap-card-button-quest-mobility'));
     expect(mockPush).toHaveBeenCalledWith('/quest/quest-mobility');
   });
 });

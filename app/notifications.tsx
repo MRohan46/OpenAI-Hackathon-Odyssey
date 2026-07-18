@@ -1,4 +1,5 @@
 import { Bell, CheckCheck, Clock3, Gem, TriangleAlert } from 'lucide-react-native';
+import { type Href, useRouter } from 'expo-router';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
@@ -15,6 +16,11 @@ const icons = { scheduled: Clock3, deadline: Bell, overdue: TriangleAlert, rewar
 
 export default function NotificationsScreen() {
   const { notifications, markNotificationRead } = useApp();
+  const router = useRouter();
+  const openNotification = async (notification: (typeof notifications)[number]) => {
+    await markNotificationRead(notification.id);
+    if (notification.targetRoute) router.push(notification.targetRoute as Href);
+  };
   return (
     <LivingScreen dim={0.28}>
       <ScreenHeader back title="Tide notes" eyebrow="In-app reminders" />
@@ -24,7 +30,7 @@ export default function NotificationsScreen() {
           {notifications.map((notification) => {
             const Icon = icons[notification.kind];
             return (
-              <Surface key={notification.id} onPress={() => markNotificationRead(notification.id)} accessibilityLabel={`${notification.read ? 'Read' : 'Unread'} notification: ${notification.title}`} padding="medium" style={!notification.read ? styles.unread : undefined}>
+              <Surface key={notification.id} onPress={() => openNotification(notification)} accessibilityLabel={`${notification.read ? 'Read' : 'Unread'} notification: ${notification.title}${notification.targetRoute ? '. Opens related screen' : ''}`} padding="medium" style={!notification.read ? styles.unread : undefined}>
                 <View style={styles.row}>
                   <View style={[styles.icon, { backgroundColor: notification.kind === 'overdue' ? 'rgba(255,113,91,0.14)' : colors.sky }]}><Icon size={19} color={notification.kind === 'overdue' ? colors.coral : colors.waterDeep} /></View>
                   <View style={styles.copy}><View style={styles.titleRow}><Typography variant="label">{notification.title}</Typography>{notification.read ? <CheckCheck size={16} color={colors.success} /> : <View style={styles.dot} />}</View><Typography variant="body" color={colors.inkSecondary}>{notification.body}</Typography><Typography variant="micro" color={colors.inkSecondary}>{formatQuestDate(notification.createdAt)}</Typography></View>

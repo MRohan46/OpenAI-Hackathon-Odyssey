@@ -117,6 +117,8 @@ export interface OdysseyApi {
     openChest(chestId: string): Promise<ApiResult<ChestReceipt>>;
     applyBoost(boostId: string): Promise<ApiResult<RewardInventory>>;
     selectCosmetic(cosmeticId: string): Promise<ApiResult<RewardInventory>>;
+    unlockCosmetic(cosmeticId: string): Promise<ApiResult<RewardInventory>>;
+    useStreakProtection(questId?: string): Promise<ApiResult<RewardInventory>>;
   };
   analytics: {
     overall(period: OverallAnalytics['period']): Promise<ApiResult<OverallAnalytics>>;

@@ -1,4 +1,4 @@
-import { format } from 'date-fns';
+import { format, isSameDay, parseISO } from 'date-fns';
 import { useRouter } from 'expo-router';
 import { Bell, Check, ChevronDown, Plus, Route } from 'lucide-react-native';
 import React, { useMemo, useRef, useState } from 'react';
@@ -15,21 +15,12 @@ import { useApp } from '../../src/state/AppProvider';
 import { colors, fontFamilies, layout, radii, spacing } from '../../src/theme/tokens';
 import type { Quest } from '../../src/types/domain';
 import { formatTime, statusLabel } from '../../src/utils/format';
+import { compareQuestAttention, questAttentionReason } from '../../src/utils/questPriority';
 import { TideObservatoryBackdrop } from '../../src/world/TideObservatoryBackdrop';
 
 // Rollback switch retained intentionally. The former card-based Today screen remains compilable.
 // import { LegacyTodayScreen } from '../../src/screens/LegacyTodayScreen';
 // export default LegacyTodayScreen;
-
-const statusRank = {
-  overdue: 0,
-  inProgress: 1,
-  completionPending: 1,
-  scheduled: 2,
-  upcoming: 3,
-  completed: 4,
-  missed: 5,
-} as const;
 
 type RouteRole = 'upcoming' | 'featured' | 'completed' | 'additionalLeft' | 'additionalRight';
 
@@ -78,22 +69,25 @@ export default function TodayScreen() {
   const reducedMotion = useReducedMotion();
   const [navigatorOpen, setNavigatorOpen] = useState(false);
   const { profile, goals, quests, notifications, preferences } = useApp();
+  const focusDate = useMemo(() => {
+    const visible = quests.filter((quest) => quest.status !== 'missed' && quest.status !== 'completed');
+    return parseISO((visible[0] ?? quests[0])?.scheduledAt ?? new Date().toISOString());
+  }, [quests]);
+  const dayQuests = useMemo(
+    () => quests.filter((quest) => isSameDay(parseISO(quest.scheduledAt), focusDate)),
+    [focusDate, quests],
+  );
   const ordered = useMemo(
-    () => [...quests].sort((a, b) => statusRank[a.status] - statusRank[b.status]),
-    [quests],
+    () => [...dayQuests].sort((a, b) => compareQuestAttention(a, b, goals, focusDate)),
+    [dayQuests, focusDate, goals],
   );
-  const featured = ordered.find(
-    (quest) =>
-      quest.status === 'scheduled' ||
-      quest.status === 'inProgress' ||
-      quest.status === 'completionPending',
-  );
+  const featured = ordered.find((quest) => quest.status !== 'completed' && quest.status !== 'missed' && quest.status !== 'upcoming');
   const activeGoal = goals.find((goal) => goal.id === featured?.goalId) ?? goals[0];
   const routeEntries = useMemo(() => buildRouteEntries(ordered, featured), [featured, ordered]);
   const additionalCount = routeEntries.filter((entry) => entry.role.startsWith('additional')).length;
   const sceneHeight = Math.max(1120, 1140 + additionalCount * 210);
   const unread = notifications.filter((item) => !item.read).length;
-  const dateSource = featured?.scheduledAt ?? quests[0]?.scheduledAt ?? new Date().toISOString();
+  const dateSource = featured?.scheduledAt ?? dayQuests[0]?.scheduledAt ?? new Date().toISOString();
 
   const jumpToQuest = (questId: string) => {
     const entry = routeEntries.find((candidate) => candidate.quest.id === questId);
@@ -140,7 +134,7 @@ export default function TodayScreen() {
                     </Pressable>
                     <Pressable
                       accessibilityRole="button"
-                      accessibilityLabel={`Open today's ${quests.length} quest navigator`}
+                      accessibilityLabel={`Open today's ${dayQuests.length} quest navigator`}
                       accessibilityState={{ expanded: navigatorOpen }}
                       aria-expanded={navigatorOpen}
                       onPress={() => setNavigatorOpen((open) => !open)}
@@ -149,7 +143,7 @@ export default function TodayScreen() {
                     >
                       <Route size={17} color={colors.ink} />
                       <Typography variant="micro" style={styles.navigatorCount}>
-                        {quests.length}
+                        {dayQuests.length}
                       </Typography>
                       <ChevronDown
                         size={14}
@@ -234,6 +228,7 @@ export default function TodayScreen() {
                 const canBegin =
                   isFeatured &&
                   (entry.quest.status === 'scheduled' ||
+                    entry.quest.status === 'overdue' ||
                     entry.quest.status === 'inProgress' ||
                     entry.quest.status === 'completionPending');
                 return (
@@ -259,6 +254,7 @@ export default function TodayScreen() {
                           ? () => router.push(`/quest/${entry.quest.id}/complete`)
                           : undefined
                       }
+                      reason={isFeatured ? questAttentionReason(entry.quest, goals, focusDate) : undefined}
                     />
                   </View>
                 );
@@ -286,7 +282,7 @@ export default function TodayScreen() {
 
               <View style={[styles.routeFooter, { top: sceneHeight - 125 }]}>
                 <Typography variant="micro" color={colors.inkSecondary}>
-                  Every quest is on the route · {quests.length} total
+                  Every quest for this day is on the route · {dayQuests.length} total
                 </Typography>
               </View>
             </SafeAreaView>

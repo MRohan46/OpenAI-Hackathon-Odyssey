@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { AlertTriangle, BarChart3, CalendarClock, Camera, Check, Clock3, Flame, RefreshCcw, Trash2 } from 'lucide-react-native';
+import { AlertTriangle, BarChart3, CalendarClock, Camera, Check, Clock3, Flame, Pencil, RefreshCcw, Trash2 } from 'lucide-react-native';
 import React, { useState } from 'react';
 import { Alert, StyleSheet, View } from 'react-native';
 
@@ -55,9 +55,11 @@ export default function QuestDetailScreen() {
         <View><Typography variant="micro" color={colors.sun}>CONFIRMED REWARD ON COMPLETION</Typography><Typography variant="heading" color={colors.white}>{quest.rewardXp} XP · {quest.rewardRubies} rubies</Typography></View>
         <View style={styles.damage}><Flame size={19} color={colors.coral} /><Typography variant="label" color={colors.white}>{quest.bossDamage} boss damage</Typography></View>
       </Surface>
+      {quest.status === 'missed' || quest.status === 'overdue' ? <Surface padding="large" style={styles.recovery}><AlertTriangle size={22} color={colors.coralText} /><View style={styles.recoveryCopy}><Typography variant="heading">Choose the recovery, keep the truth.</Typography><Typography variant="body" color={colors.inkSecondary}>Reschedule the work, complete it honestly, or reserve an eligible streak guard. Existing XP, roadmap stages, and boss damage are never reversed.</Typography><View style={styles.actions}><Button label="Choose a new time" icon={CalendarClock} variant="secondary" compact onPress={() => router.push(`/quest/${quest.id}/edit`)} /><Button label="Streak protection" icon={RefreshCcw} variant="ghost" compact onPress={() => router.push('/rewards')} /></View></View></Surface> : null}
       {quest.status !== 'completed' ? <Button label={quest.status === 'completionPending' ? 'Waiting for confirmation' : 'Complete this quest'} icon={Check} disabled={quest.status === 'completionPending'} onPress={() => router.push(`/quest/${quest.id}/complete`)} /> : <Button label="View habit analytics" icon={BarChart3} onPress={() => router.push(`/analytics/habit/${quest.id}`)} />}
       <View style={styles.actions}>
-        <Button label="Reschedule +2h" icon={RefreshCcw} variant="secondary" compact loading={pending} onPress={reschedule} />
+        <Button label="Edit or reschedule" icon={Pencil} variant="secondary" compact onPress={() => router.push(`/quest/${quest.id}/edit`)} />
+        <Button label="Quick move +2h" icon={RefreshCcw} variant="secondary" compact loading={pending} onPress={reschedule} />
         <Button label="Remove quest" icon={Trash2} variant="ghost" compact onPress={remove} />
       </View>
       {error ? <Typography variant="micro" color={colors.coralText}>{error}</Typography> : null}
@@ -67,4 +69,5 @@ export default function QuestDetailScreen() {
 const styles = StyleSheet.create({
   hero: { gap: spacing.sm }, chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs }, details: { gap: spacing.md },
   detail: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm }, rewards: { gap: spacing.md }, damage: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs }, actions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  recovery: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm }, recoveryCopy: { flex: 1, gap: spacing.sm },
 });

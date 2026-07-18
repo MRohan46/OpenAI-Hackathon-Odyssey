@@ -9,6 +9,7 @@ import {
   initialPreferences,
   initialProfile,
   initialQuests,
+  initialRewardLedger,
   initialRewards,
   mathematicsRoadmap,
 } from '../data/mockData';
@@ -19,7 +20,9 @@ import type {
   NotificationItem,
   Quest,
   RewardInventory,
+  RewardLedgerEntry,
   RoadmapDraft,
+  RoadmapLevel,
   UserProfile,
 } from '../types/domain';
 
@@ -46,6 +49,7 @@ interface AppContextValue {
   goals: Goal[];
   quests: Quest[];
   rewards: RewardInventory;
+  rewardLedger: RewardLedgerEntry[];
   notifications: NotificationItem[];
   preferences: AppPreferences;
   signedIn: boolean;
@@ -60,12 +64,15 @@ interface AppContextValue {
   signUp(name: string, email: string, password: string): Promise<string | null>;
   signOut(): Promise<void>;
   generateRoadmap(input: Omit<RoadmapDraft, 'levels'>): Promise<string | null>;
-  updateRoadmapLevel(levelId: string, title: string): void;
+  updateRoadmapLevel(levelId: string, input: Partial<RoadmapLevel>): void;
+  regenerateRoadmapLevel(levelId: string): void;
   moveRoadmapLevel(levelId: string, direction: -1 | 1): void;
   acceptRoadmap(): Promise<Goal | null>;
   updateGoal(goalId: string, input: Partial<Goal>): Promise<string | null>;
+  completeGoal(goalId: string): Promise<string | null>;
   createQuest(input: NewQuestInput): Promise<Quest | null>;
   updateQuest(questId: string, input: Partial<Quest>): Promise<string | null>;
+  updateQuestSeries(questId: string, input: Partial<Quest>): Promise<string | null>;
   removeQuest(questId: string): Promise<string | null>;
   completeQuest(questId: string, actualIntensity: Intensity, proofUri?: string): Promise<boolean>;
   resetCompletion(): void;
@@ -74,6 +81,9 @@ interface AppContextValue {
   updatePreferences(input: Partial<AppPreferences>): Promise<void>;
   selectCosmetic(cosmeticId: string): void;
   openChest(chestId: string): Promise<boolean>;
+  applyBoost(boostId: string): Promise<string | null>;
+  unlockCosmetic(cosmeticId: string): Promise<string | null>;
+  useStreakProtection(questId?: string): Promise<string | null>;
 }
 
 const AppContext = createContext<AppContextValue | null>(null);
@@ -83,6 +93,7 @@ export function AppProvider({ children }: React.PropsWithChildren) {
   const [goals, setGoals] = useState<Goal[]>(structuredClone(initialGoals));
   const [quests, setQuests] = useState<Quest[]>(structuredClone(initialQuests));
   const [rewards, setRewards] = useState<RewardInventory>(structuredClone(initialRewards));
+  const [rewardLedger, setRewardLedger] = useState<RewardLedgerEntry[]>(structuredClone(initialRewardLedger));
   const [notifications, setNotifications] = useState<NotificationItem[]>(structuredClone(initialNotifications));
   const [preferences, setPreferences] = useState<AppPreferences>(structuredClone(initialPreferences));
   const [signedIn, setSignedIn] = useState(false);
@@ -151,12 +162,28 @@ export function AppProvider({ children }: React.PropsWithChildren) {
     return null;
   }, []);
 
-  const updateRoadmapLevel = useCallback((levelId: string, title: string) => {
+  const updateRoadmapLevel = useCallback((levelId: string, input: Partial<RoadmapLevel>) => {
     setActiveRoadmapDraft((draft) =>
       draft
-        ? { ...draft, levels: draft.levels.map((level) => (level.id === levelId ? { ...level, title } : level)) }
+        ? { ...draft, levels: draft.levels.map((level) => (level.id === levelId ? { ...level, ...input } : level)) }
         : draft,
     );
+  }, []);
+
+  const regenerateRoadmapLevel = useCallback((levelId: string) => {
+    setActiveRoadmapDraft((draft) => {
+      if (!draft) return draft;
+      return {
+        ...draft,
+        levels: draft.levels.map((level) => level.id === levelId ? {
+          ...level,
+          purpose: `Create a practical, evidence-led step toward ${draft.goalTitle.toLowerCase()}.`,
+          milestone: `Show clear evidence that ${level.title.toLowerCase()} is complete.`,
+          habits: [`Practice ${level.title.toLowerCase()}`, 'Review what changed'],
+          tasks: [`Define the evidence for ${level.title.toLowerCase()}`, 'Complete and review the level milestone'],
+        } : level),
+      };
+    });
   }, []);
 
   const moveRoadmapLevel = useCallback((levelId: string, direction: -1 | 1) => {
@@ -188,9 +215,21 @@ export function AppProvider({ children }: React.PropsWithChildren) {
     return null;
   }, []);
 
+  const completeGoal = useCallback(async (goalId: string) => {
+    const goal = goals.find((item) => item.id === goalId);
+    if (!goal || goal.currentLevel < 10 || goal.bossHealth > 0) return 'The final level and boss must be completed before this Odyssey can close.';
+    const completedAt = new Date().toISOString();
+    const result = await odysseyApi.goals.update(goalId, { status: 'completed', progress: 100, completedAt });
+    if (!result.ok) return result.error.message;
+    setGoals((current) => current.map((item) => item.id === goalId ? result.data : item));
+    await haptic('success');
+    return null;
+  }, [goals, haptic]);
+
   const createQuest = useCallback(async (input: NewQuestInput) => {
     const result = await odysseyApi.quests.create({
       ...input,
+      seriesId: input.kind === 'habit' ? `series-${Date.now()}` : undefined,
       status: 'scheduled',
       rewardXp: input.priority === 'critical' ? 120 : input.priority === 'high' ? 90 : 45,
       rewardRubies: input.priority === 'critical' ? 16 : input.priority === 'high' ? 12 : 6,
@@ -208,6 +247,18 @@ export function AppProvider({ children }: React.PropsWithChildren) {
     setQuests((current) => current.map((quest) => (quest.id === questId ? result.data : quest)));
     return null;
   }, []);
+
+  const updateQuestSeries = useCallback(async (questId: string, input: Partial<Quest>) => {
+    const source = quests.find((quest) => quest.id === questId);
+    if (!source?.seriesId) return updateQuest(questId, input);
+    const editable = quests.filter((quest) => quest.seriesId === source.seriesId && quest.status !== 'completed' && quest.status !== 'missed');
+    const results = await Promise.all(editable.map((quest) => odysseyApi.quests.update(quest.id, input)));
+    const failure = results.find((result) => !result.ok);
+    if (failure && !failure.ok) return failure.error.message;
+    const updated = new Map(results.filter((result) => result.ok).map((result) => [result.data.id, result.data]));
+    setQuests((current) => current.map((quest) => updated.get(quest.id) ?? quest));
+    return null;
+  }, [quests, updateQuest]);
 
   const removeQuest = useCallback(async (questId: string) => {
     const result = await odysseyApi.quests.remove(questId);
@@ -247,6 +298,14 @@ export function AppProvider({ children }: React.PropsWithChildren) {
       );
       setProfile((current) => ({ ...current, xp: current.xp + result.data.rewards.xp }));
       setRewards((current) => ({ ...current, rubies: current.rubies + result.data.rewards.rubies }));
+      setRewardLedger((current) => [{
+        id: `ledger-${Date.now()}`,
+        createdAt: result.data.quest.completedAt ?? new Date().toISOString(),
+        kind: 'quest',
+        title: `${result.data.quest.title} completed`,
+        xp: result.data.rewards.xp,
+        rubies: result.data.rewards.rubies,
+      }, ...current]);
       setCompletionReceipt(result.data);
       setCompletionState('confirmed');
       setActiveProofUri(null);
@@ -305,9 +364,41 @@ export function AppProvider({ children }: React.PropsWithChildren) {
       rubies: current.rubies + result.data.rubies,
     }));
     setProfile((current) => ({ ...current, xp: current.xp + result.data.xp }));
+    setRewardLedger((current) => [{ id: `ledger-${Date.now()}`, createdAt: new Date().toISOString(), kind: 'chest', title: 'Earned chest opened', xp: result.data.xp, rubies: result.data.rubies }, ...current]);
     await haptic('success');
     return true;
   }, [haptic]);
+
+  const applyBoost = useCallback(async (boostId: string) => {
+    const result = await odysseyApi.rewards.applyBoost(boostId);
+    if (!result.ok) return result.error.message;
+    const boost = rewards.boosts.find((item) => item.id === boostId);
+    setRewards(result.data);
+    setRewardLedger((current) => [{ id: `ledger-${Date.now()}`, createdAt: new Date().toISOString(), kind: 'boost', title: `${boost?.name ?? 'Boost'} prepared`, xp: 0, rubies: 0 }, ...current]);
+    await haptic('success');
+    return null;
+  }, [haptic, rewards.boosts]);
+
+  const unlockCosmetic = useCallback(async (cosmeticId: string) => {
+    const cosmetic = rewards.cosmetics.find((item) => item.id === cosmeticId);
+    const result = await odysseyApi.rewards.unlockCosmetic(cosmeticId);
+    if (!result.ok) return result.error.message;
+    setRewards(result.data);
+    setRewardLedger((current) => [{ id: `ledger-${Date.now()}`, createdAt: new Date().toISOString(), kind: 'cosmetic', title: `${cosmetic?.name ?? 'Cosmetic'} unlocked`, xp: 0, rubies: -(cosmetic?.rubyPrice ?? 0) }, ...current]);
+    await haptic('success');
+    return null;
+  }, [haptic, rewards.cosmetics]);
+
+  const useStreakProtection = useCallback(async (questId?: string) => {
+    const quest = quests.find((item) => item.id === questId);
+    const result = await odysseyApi.rewards.useStreakProtection(questId);
+    if (!result.ok) return result.error.message;
+    setRewards(result.data);
+    if (questId) setQuests((current) => current.map((item) => item.id === questId ? { ...item, streakProtected: true } : item));
+    setRewardLedger((current) => [{ id: `ledger-${Date.now()}`, createdAt: new Date().toISOString(), kind: 'streakProtection', title: quest ? `Streak protected after ${quest.title}` : 'Streak protection reserved for the next eligible miss', xp: 0, rubies: 0 }, ...current]);
+    await haptic('success');
+    return null;
+  }, [haptic, quests]);
 
   const value = useMemo<AppContextValue>(
     () => ({
@@ -315,6 +406,7 @@ export function AppProvider({ children }: React.PropsWithChildren) {
       goals,
       quests,
       rewards,
+      rewardLedger,
       notifications,
       preferences,
       signedIn,
@@ -330,11 +422,14 @@ export function AppProvider({ children }: React.PropsWithChildren) {
       signOut,
       generateRoadmap,
       updateRoadmapLevel,
+      regenerateRoadmapLevel,
       moveRoadmapLevel,
       acceptRoadmap,
       updateGoal,
+      completeGoal,
       createQuest,
       updateQuest,
+      updateQuestSeries,
       removeQuest,
       completeQuest,
       resetCompletion,
@@ -343,12 +438,16 @@ export function AppProvider({ children }: React.PropsWithChildren) {
       updatePreferences,
       selectCosmetic,
       openChest,
+      applyBoost,
+      unlockCosmetic,
+      useStreakProtection,
     }),
     [
       profile,
       goals,
       quests,
       rewards,
+      rewardLedger,
       notifications,
       preferences,
       signedIn,
@@ -364,11 +463,14 @@ export function AppProvider({ children }: React.PropsWithChildren) {
       signOut,
       generateRoadmap,
       updateRoadmapLevel,
+      regenerateRoadmapLevel,
       moveRoadmapLevel,
       acceptRoadmap,
       updateGoal,
+      completeGoal,
       createQuest,
       updateQuest,
+      updateQuestSeries,
       removeQuest,
       completeQuest,
       resetCompletion,
@@ -376,6 +478,9 @@ export function AppProvider({ children }: React.PropsWithChildren) {
       updatePreferences,
       selectCosmetic,
       openChest,
+      applyBoost,
+      unlockCosmetic,
+      useStreakProtection,
     ],
   );
 

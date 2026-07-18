@@ -6,6 +6,7 @@ import { StyleSheet, View } from 'react-native';
 import { Button } from '../../src/components/Button';
 import { Chip } from '../../src/components/Chip';
 import { ChoiceGroup } from '../../src/components/ChoiceGroup';
+import { DateField } from '../../src/components/DateField';
 import { Field } from '../../src/components/Field';
 import { LivingScreen } from '../../src/components/LivingScreen';
 import { ScreenHeader } from '../../src/components/ScreenHeader';
@@ -53,7 +54,7 @@ export default function NewGoalScreen() {
       <Typography variant="body" color={colors.inkSecondary}>Give the route enough truth to fit your life. Nothing becomes active until you review it.</Typography>
       <Surface padding="large" style={styles.form}>
         <Field label="What does victory look like?" value={goalTitle} onChangeText={setGoalTitle} multiline help="Describe the result, not just the activity." />
-        <Field label="Target date" value={deadline} onChangeText={setDeadline} placeholder="YYYY-MM-DD" />
+        <DateField label="Target date" value={deadline} onChange={setDeadline} />
         <Field label="Where are you starting?" value={startingPoint} onChangeText={setStartingPoint} multiline />
         <View style={styles.group}>
           <Typography variant="label">Days available</Typography>
