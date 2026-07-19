@@ -1,4 +1,5 @@
 import { Image } from 'expo-image';
+import { useAudioPlayer } from 'expo-audio';
 import React, { useEffect } from 'react';
 import { StyleSheet, useWindowDimensions, View } from 'react-native';
 import Animated, {
@@ -14,16 +15,22 @@ import { useReducedMotion } from '../hooks/useReducedMotion';
 const thunderGavel = require('../../assets/images/first-island/thunder-gavel.png');
 const thunderImpact = require('../../assets/images/first-island/thunder-impact.png');
 const deepMist = require('../../assets/images/first-island/deep-mist-veil.png');
+const thunderSound = require('../../assets/audio/first-island-thunder.mp3');
 
 export function FirstIslandCinematicIntro() {
   const { width } = useWindowDimensions();
   const reducedMotion = useReducedMotion();
+  const thunderPlayer = useAudioPlayer(thunderSound, {
+    downloadFirst: true,
+    updateInterval: 1000,
+  });
   const desktop = width >= 900;
   const progress = useSharedValue(reducedMotion ? 1 : 0);
   const lightning = useSharedValue(0);
 
   useEffect(() => {
     if (reducedMotion) {
+      thunderPlayer.pause();
       progress.value = 1;
       lightning.value = 0;
       return;
@@ -63,9 +70,13 @@ export function FirstIslandCinematicIntro() {
         lightning.value = withTiming(value, { duration, easing: Easing.linear });
       }, delay),
     );
+    const thunderTimer = setTimeout(() => thunderPlayer.play(), lightningSteps[0][0]);
 
-    return () => [...timers, ...lightningTimers].forEach(clearTimeout);
-  }, [lightning, progress, reducedMotion]);
+    return () => {
+      [...timers, ...lightningTimers, thunderTimer].forEach(clearTimeout);
+      thunderPlayer.pause();
+    };
+  }, [lightning, progress, reducedMotion, thunderPlayer]);
 
   const deepFogStyle = useAnimatedStyle(() => ({
     opacity: interpolate(progress.value, [0, 0.72, 0.83, 1], [1, 1, 0.46, 0]),

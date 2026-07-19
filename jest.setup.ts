@@ -12,3 +12,13 @@ jest.mock('expo-image-picker', () => ({
   requestCameraPermissionsAsync: jest.fn(),
   MediaTypeOptions: { Images: 'Images' },
 }));
+
+jest.mock('expo-audio', () => ({
+  useAudioPlayer: jest.fn(() => ({
+    loop: false,
+    volume: 1,
+    play: jest.fn(),
+    pause: jest.fn(),
+    seekTo: jest.fn().mockResolvedValue(undefined),
+  })),
+}));

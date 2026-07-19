@@ -21,7 +21,8 @@
         {
           "experimentalLauncherActivity": false
         }
-      ]
+      ],
+      "expo-audio"
     ],
     "ios": {
       "supportsTablet": true

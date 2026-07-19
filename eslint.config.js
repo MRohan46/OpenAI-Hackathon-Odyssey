@@ -6,6 +6,7 @@ module.exports = defineConfig([
     ignores: [
       'dist/**',
       '.expo/**',
+      '.vercel/**',
       '.codex/**',
       '.agents/**',
       'node_modules/**',
