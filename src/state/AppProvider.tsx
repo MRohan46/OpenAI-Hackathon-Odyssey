@@ -5,7 +5,8 @@ import * as WebBrowser from 'expo-web-browser';
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { AppState, Platform } from 'react-native';
 
-import { odysseyApi, type ChestReceipt, type CompletionReceipt } from '../api';
+import { odysseyApi, usingSupabaseData, type ChestReceipt, type CompletionReceipt } from '../api';
+import { mockApi } from '../api/mockApi';
 import {
   initialGoals,
   initialNotifications,
@@ -52,12 +53,22 @@ const setPresentationSession = (active: boolean) => {
   }
 };
 
+const emptyProfile: UserProfile = {
+  id: '', name: 'Odyssey traveler', handle: '@traveler', accountLevel: 1, xp: 0, xpToNextLevel: 500, overallStreak: 0, avatarSeed: 'shore-sunrise', selectedCosmetic: 'Sea Glass Halo',
+};
+const emptyRewards: RewardInventory = { rubies: 0, unopenedChests: 0, boosts: [], cosmetics: [], streakProtection: 0 };
+
 WebBrowser.maybeCompleteAuthSession();
 
 export type AsyncActionState = 'idle' | 'pending' | 'confirmed' | 'failed';
 export interface SignUpResult {
   error: string | null;
   confirmationRequired: boolean;
+}
+
+export interface RoadmapAcceptanceResult {
+  goal: Goal | null;
+  error: string | null;
 }
 
 export interface NewQuestInput {
@@ -99,9 +110,9 @@ interface AppContextValue {
   signOut(): Promise<void>;
   generateRoadmap(input: Omit<RoadmapDraft, 'levels'>): Promise<string | null>;
   updateRoadmapLevel(levelId: string, input: Partial<RoadmapLevel>): void;
-  regenerateRoadmapLevel(levelId: string): void;
+  regenerateRoadmapLevel(levelId: string): Promise<string | null>;
   moveRoadmapLevel(levelId: string, direction: -1 | 1): void;
-  acceptRoadmap(): Promise<Goal | null>;
+  acceptRoadmap(): Promise<RoadmapAcceptanceResult>;
   updateGoal(goalId: string, input: Partial<Goal>): Promise<string | null>;
   completeGoal(goalId: string): Promise<string | null>;
   createQuest(input: NewQuestInput): Promise<Quest | null>;
@@ -113,7 +124,7 @@ interface AppContextValue {
   setActiveProofUri(uri: string | null): void;
   markNotificationRead(notificationId: string): Promise<void>;
   updatePreferences(input: Partial<AppPreferences>): Promise<void>;
-  selectCosmetic(cosmeticId: string): void;
+  selectCosmetic(cosmeticId: string): Promise<void>;
   openChest(chestId: string): Promise<boolean>;
   applyBoost(boostId: string): Promise<string | null>;
   unlockCosmetic(cosmeticId: string): Promise<string | null>;
@@ -135,12 +146,12 @@ const userProfile = (user: { id: string; email?: string; user_metadata?: Record<
 const authError = (message?: string) => message ?? 'Odyssey could not complete authentication. Please try again.';
 
 export function AppProvider({ children }: React.PropsWithChildren) {
-  const [profile, setProfile] = useState<UserProfile>(structuredClone(initialProfile));
-  const [goals, setGoals] = useState<Goal[]>(structuredClone(initialGoals));
-  const [quests, setQuests] = useState<Quest[]>(structuredClone(initialQuests));
-  const [rewards, setRewards] = useState<RewardInventory>(structuredClone(initialRewards));
-  const [rewardLedger, setRewardLedger] = useState<RewardLedgerEntry[]>(structuredClone(initialRewardLedger));
-  const [notifications, setNotifications] = useState<NotificationItem[]>(structuredClone(initialNotifications));
+  const [profile, setProfile] = useState<UserProfile>(usingSupabaseData ? emptyProfile : structuredClone(initialProfile));
+  const [goals, setGoals] = useState<Goal[]>(usingSupabaseData ? [] : structuredClone(initialGoals));
+  const [quests, setQuests] = useState<Quest[]>(usingSupabaseData ? [] : structuredClone(initialQuests));
+  const [rewards, setRewards] = useState<RewardInventory>(usingSupabaseData ? emptyRewards : structuredClone(initialRewards));
+  const [rewardLedger, setRewardLedger] = useState<RewardLedgerEntry[]>(usingSupabaseData ? [] : structuredClone(initialRewardLedger));
+  const [notifications, setNotifications] = useState<NotificationItem[]>(usingSupabaseData ? [] : structuredClone(initialNotifications));
   const [preferences, setPreferences] = useState<AppPreferences>(structuredClone(initialPreferences));
   const [signedIn, setSignedIn] = useState(false);
   const [presentationMode, setPresentationMode] = useState(presentationSessionActive);
@@ -154,8 +165,37 @@ export function AppProvider({ children }: React.PropsWithChildren) {
   const [chestReceipt, setChestReceipt] = useState<ChestReceipt | null>(null);
   const completionMutation = useRef(0);
   const preferencesLoaded = useRef(false);
+  const activeApi = presentationMode ? mockApi : odysseyApi;
+
+  const resetAccountData = useCallback(() => {
+    setProfile(usingSupabaseData ? emptyProfile : structuredClone(initialProfile));
+    setGoals(usingSupabaseData ? [] : structuredClone(initialGoals));
+    setQuests(usingSupabaseData ? [] : structuredClone(initialQuests));
+    setRewards(usingSupabaseData ? emptyRewards : structuredClone(initialRewards));
+    setRewardLedger(usingSupabaseData ? [] : structuredClone(initialRewardLedger));
+    setNotifications(usingSupabaseData ? [] : structuredClone(initialNotifications));
+  }, []);
+
+  const hydrateAccountData = useCallback(async () => {
+    const [profileResult, goalsResult, questsResult, rewardsResult, ledgerResult, notificationsResult, preferencesResult] = await Promise.all([
+      odysseyApi.profile.get(), odysseyApi.goals.list(), odysseyApi.quests.list(), odysseyApi.rewards.get(), odysseyApi.rewards.ledger(), odysseyApi.notifications.list(), odysseyApi.notifications.getReminderPreferences(),
+    ]);
+    if (!profileResult.ok || !goalsResult.ok || !questsResult.ok || !rewardsResult.ok || !ledgerResult.ok || !notificationsResult.ok || !preferencesResult.ok) return false;
+    setProfile(profileResult.data);
+    setGoals(goalsResult.data);
+    setQuests(questsResult.data);
+    setRewards(rewardsResult.data);
+    setRewardLedger(ledgerResult.data);
+    setNotifications(notificationsResult.data);
+    setPreferences((current) => ({ ...current, ...preferencesResult.data }));
+    return true;
+  }, []);
 
   useEffect(() => {
+    if (usingSupabaseData) {
+      preferencesLoaded.current = true;
+      return;
+    }
     AsyncStorage.getItem(PREFERENCES_KEY)
       .then((stored) => {
         if (stored) setPreferences({ ...initialPreferences, ...JSON.parse(stored) });
@@ -171,13 +211,16 @@ export function AppProvider({ children }: React.PropsWithChildren) {
     if (!client) return;
 
     let mounted = true;
-    const setSession = (session: Awaited<ReturnType<typeof client.auth.getSession>>['data']['session']) => {
+    const setSession = async (session: Awaited<ReturnType<typeof client.auth.getSession>>['data']['session']) => {
       if (!mounted) return;
       setSignedIn(Boolean(session?.user));
       if (session?.user) {
         setPresentationSession(false);
         setPresentationMode(false);
         setProfile(userProfile(session.user));
+        await hydrateAccountData();
+      } else {
+        resetAccountData();
       }
       setAuthLoading(false);
     };
@@ -196,7 +239,7 @@ export function AppProvider({ children }: React.PropsWithChildren) {
       subscription.subscription.unsubscribe();
       appStateSubscription?.remove();
     };
-  }, []);
+  }, [hydrateAccountData, resetAccountData]);
 
   const haptic = useCallback(
     async (kind: 'selection' | 'success' = 'selection') => {
@@ -264,6 +307,13 @@ export function AppProvider({ children }: React.PropsWithChildren) {
   const enterPresentationMode = useCallback(() => {
     setPresentationSession(true);
     setPresentationMode(true);
+    setProfile(structuredClone(initialProfile));
+    setGoals(structuredClone(initialGoals));
+    setQuests(structuredClone(initialQuests));
+    setRewards(structuredClone(initialRewards));
+    setRewardLedger(structuredClone(initialRewardLedger));
+    setNotifications(structuredClone(initialNotifications));
+    setPreferences(structuredClone(initialPreferences));
   }, []);
 
   const signOut = useCallback(async () => {
@@ -271,21 +321,17 @@ export function AppProvider({ children }: React.PropsWithChildren) {
     setSignedIn(false);
     setPresentationSession(false);
     setPresentationMode(false);
-    setProfile(structuredClone(initialProfile));
-    setGoals(structuredClone(initialGoals));
-    setQuests(structuredClone(initialQuests));
-    setRewards(structuredClone(initialRewards));
-    setNotifications(structuredClone(initialNotifications));
+    resetAccountData();
     setActiveRoadmapDraft(null);
     setActiveProofUri(null);
-  }, []);
+  }, [resetAccountData]);
 
   const generateRoadmap = useCallback(async (input: Omit<RoadmapDraft, 'levels'>) => {
-    const result = await odysseyApi.roadmaps.generate(input);
+    const result = await activeApi.roadmaps.generate(input);
     if (!result.ok) return result.error.message;
     setActiveRoadmapDraft(result.data);
     return null;
-  }, []);
+  }, [activeApi]);
 
   const updateRoadmapLevel = useCallback((levelId: string, input: Partial<RoadmapLevel>) => {
     setActiveRoadmapDraft((draft) =>
@@ -295,21 +341,40 @@ export function AppProvider({ children }: React.PropsWithChildren) {
     );
   }, []);
 
-  const regenerateRoadmapLevel = useCallback((levelId: string) => {
-    setActiveRoadmapDraft((draft) => {
-      if (!draft) return draft;
+  const regenerateRoadmapLevel = useCallback(async (levelId: string) => {
+    const draft = activeRoadmapDraft;
+    const target = draft?.levels.find((level) => level.id === levelId);
+    if (!draft || !target) return 'This proposal is no longer available. Return to the goal form and generate a new route.';
+
+    const requestConstraints = [
+      draft.constraints,
+      `Regeneration request: improve level ${target.number} while keeping the whole ten-level route coherent.`,
+      `Replace the selected level with a more practical alternative to: ${JSON.stringify({ title: target.title, purpose: target.purpose, milestone: target.milestone, habits: target.habits, tasks: target.tasks })}`,
+    ].filter(Boolean).join('\n\n');
+    const result = await activeApi.roadmaps.generate({
+      goalTitle: draft.goalTitle,
+      deadline: draft.deadline,
+      startingPoint: draft.startingPoint,
+      availableDays: draft.availableDays,
+      minutesPerDay: draft.minutesPerDay,
+      preferredIntensity: draft.preferredIntensity,
+      constraints: requestConstraints,
+    });
+    if (!result.ok) return result.error.message;
+
+    const replacement = result.data.levels.find((level) => level.number === target.number);
+    if (!replacement) return 'The planning service returned an incomplete replacement. Your current level has not changed.';
+    setActiveRoadmapDraft((current) => {
+      if (!current) return current;
       return {
-        ...draft,
-        levels: draft.levels.map((level) => level.id === levelId ? {
-          ...level,
-          purpose: `Create a practical, evidence-led step toward ${draft.goalTitle.toLowerCase()}.`,
-          milestone: `Show clear evidence that ${level.title.toLowerCase()} is complete.`,
-          habits: [`Practice ${level.title.toLowerCase()}`, 'Review what changed'],
-          tasks: [`Define the evidence for ${level.title.toLowerCase()}`, 'Complete and review the level milestone'],
-        } : level),
+        ...current,
+        levels: current.levels.map((level) => level.id === levelId
+          ? { ...replacement, id: level.id, number: level.number, status: level.status }
+          : level),
       };
     });
-  }, []);
+    return null;
+  }, [activeApi, activeRoadmapDraft]);
 
   const moveRoadmapLevel = useCallback((levelId: string, direction: -1 | 1) => {
     setActiveRoadmapDraft((draft) => {
@@ -324,35 +389,35 @@ export function AppProvider({ children }: React.PropsWithChildren) {
   }, []);
 
   const acceptRoadmap = useCallback(async () => {
-    if (!activeRoadmapDraft) return null;
-    const result = await odysseyApi.roadmaps.accept(activeRoadmapDraft);
-    if (!result.ok) return null;
+    if (!activeRoadmapDraft) return { goal: null, error: 'There is no roadmap proposal to activate.' };
+    const result = await activeApi.roadmaps.accept(activeRoadmapDraft);
+    if (!result.ok) return { goal: null, error: result.error.message };
     setGoals((current) => [result.data, ...current.filter((goal) => goal.id !== result.data.id)]);
     setActiveRoadmapDraft(null);
     await haptic('success');
-    return result.data;
-  }, [activeRoadmapDraft, haptic]);
+    return { goal: result.data, error: null };
+  }, [activeApi, activeRoadmapDraft, haptic]);
 
   const updateGoal = useCallback(async (goalId: string, input: Partial<Goal>) => {
-    const result = await odysseyApi.goals.update(goalId, input);
+    const result = await activeApi.goals.update(goalId, input);
     if (!result.ok) return result.error.message;
     setGoals((current) => current.map((goal) => (goal.id === goalId ? result.data : goal)));
     return null;
-  }, []);
+  }, [activeApi]);
 
   const completeGoal = useCallback(async (goalId: string) => {
     const goal = goals.find((item) => item.id === goalId);
     if (!goal || goal.currentLevel < 10 || goal.bossHealth > 0) return 'The final level and boss must be completed before this Odyssey can close.';
     const completedAt = new Date().toISOString();
-    const result = await odysseyApi.goals.update(goalId, { status: 'completed', progress: 100, completedAt });
+    const result = await activeApi.goals.update(goalId, { status: 'completed', progress: 100, completedAt });
     if (!result.ok) return result.error.message;
     setGoals((current) => current.map((item) => item.id === goalId ? result.data : item));
     await haptic('success');
     return null;
-  }, [goals, haptic]);
+  }, [activeApi, goals, haptic]);
 
   const createQuest = useCallback(async (input: NewQuestInput) => {
-    const result = await odysseyApi.quests.create({
+    const result = await activeApi.quests.create({
       ...input,
       seriesId: input.kind === 'habit' ? `series-${Date.now()}` : undefined,
       status: 'scheduled',
@@ -364,33 +429,33 @@ export function AppProvider({ children }: React.PropsWithChildren) {
     setQuests((current) => [...current, result.data]);
     await haptic();
     return result.data;
-  }, [haptic]);
+  }, [activeApi, haptic]);
 
   const updateQuest = useCallback(async (questId: string, input: Partial<Quest>) => {
-    const result = await odysseyApi.quests.update(questId, input);
+    const result = await activeApi.quests.update(questId, input);
     if (!result.ok) return result.error.message;
     setQuests((current) => current.map((quest) => (quest.id === questId ? result.data : quest)));
     return null;
-  }, []);
+  }, [activeApi]);
 
   const updateQuestSeries = useCallback(async (questId: string, input: Partial<Quest>) => {
     const source = quests.find((quest) => quest.id === questId);
     if (!source?.seriesId) return updateQuest(questId, input);
     const editable = quests.filter((quest) => quest.seriesId === source.seriesId && quest.status !== 'completed' && quest.status !== 'missed');
-    const results = await Promise.all(editable.map((quest) => odysseyApi.quests.update(quest.id, input)));
+    const results = await Promise.all(editable.map((quest) => activeApi.quests.update(quest.id, input)));
     const failure = results.find((result) => !result.ok);
     if (failure && !failure.ok) return failure.error.message;
     const updated = new Map(results.filter((result) => result.ok).map((result) => [result.data.id, result.data]));
     setQuests((current) => current.map((quest) => updated.get(quest.id) ?? quest));
     return null;
-  }, [quests, updateQuest]);
+  }, [activeApi, quests, updateQuest]);
 
   const removeQuest = useCallback(async (questId: string) => {
-    const result = await odysseyApi.quests.remove(questId);
+    const result = await activeApi.quests.remove(questId);
     if (!result.ok) return result.error.message;
     setQuests((current) => current.filter((quest) => quest.id !== questId));
     return null;
-  }, []);
+  }, [activeApi]);
 
   const completeQuest = useCallback(
     async (questId: string, actualIntensity: Intensity, proofUri?: string) => {
@@ -401,7 +466,7 @@ export function AppProvider({ children }: React.PropsWithChildren) {
       setQuests((current) =>
         current.map((quest) => (quest.id === questId ? { ...quest, status: 'completionPending' } : quest)),
       );
-      const result = await odysseyApi.quests.complete(questId, {
+      const result = await activeApi.quests.complete(questId, {
         actualIntensity,
         proofUri,
         clientMutationId: `complete-${questId}-${mutation}`,
@@ -437,7 +502,7 @@ export function AppProvider({ children }: React.PropsWithChildren) {
       await haptic('success');
       return true;
     },
-    [haptic],
+    [activeApi, haptic],
   );
 
   const resetCompletion = useCallback(() => {
@@ -448,35 +513,32 @@ export function AppProvider({ children }: React.PropsWithChildren) {
   }, []);
 
   const markNotificationRead = useCallback(async (notificationId: string) => {
-    const result = await odysseyApi.notifications.markRead(notificationId);
+    const result = await activeApi.notifications.markRead(notificationId);
     if (result.ok) {
       setNotifications((current) => current.map((item) => (item.id === notificationId ? result.data : item)));
     }
-  }, []);
+  }, [activeApi]);
 
   const updatePreferences = useCallback(async (input: Partial<AppPreferences>) => {
     const next = { ...preferences, ...input };
     setPreferences(next);
-    if (preferencesLoaded.current) await AsyncStorage.setItem(PREFERENCES_KEY, JSON.stringify(next));
-    await odysseyApi.profile.updatePreferences(next);
-  }, [preferences]);
+    if (!usingSupabaseData && preferencesLoaded.current) await AsyncStorage.setItem(PREFERENCES_KEY, JSON.stringify(next));
+    const result = await activeApi.profile.updatePreferences(next);
+    if (result.ok) setPreferences((current) => ({ ...current, ...result.data }));
+  }, [activeApi, preferences]);
 
-  const selectCosmetic = useCallback((cosmeticId: string) => {
-    setRewards((current) => ({
-      ...current,
-      cosmetics: current.cosmetics.map((cosmetic) => ({
-        ...cosmetic,
-        selected: cosmetic.id === cosmeticId && cosmetic.unlocked,
-      })),
-    }));
+  const selectCosmetic = useCallback(async (cosmeticId: string) => {
     const cosmetic = rewards.cosmetics.find((item) => item.id === cosmeticId);
+    const result = await activeApi.rewards.selectCosmetic(cosmeticId);
+    if (!result.ok) return;
+    setRewards(result.data);
     if (cosmetic?.unlocked) setProfile((current) => ({ ...current, selectedCosmetic: cosmetic.name }));
-  }, [rewards.cosmetics]);
+  }, [activeApi, rewards.cosmetics]);
 
   const openChest = useCallback(async (chestId: string) => {
     setChestState('pending');
     setChestReceipt(null);
-    const result = await odysseyApi.rewards.openChest(chestId);
+    const result = await activeApi.rewards.openChest(chestId);
     if (!result.ok) {
       setChestState('failed');
       return false;
@@ -492,38 +554,38 @@ export function AppProvider({ children }: React.PropsWithChildren) {
     setRewardLedger((current) => [{ id: `ledger-${Date.now()}`, createdAt: new Date().toISOString(), kind: 'chest', title: 'Earned chest opened', xp: result.data.xp, rubies: result.data.rubies }, ...current]);
     await haptic('success');
     return true;
-  }, [haptic]);
+  }, [activeApi, haptic]);
 
   const applyBoost = useCallback(async (boostId: string) => {
-    const result = await odysseyApi.rewards.applyBoost(boostId);
+    const result = await activeApi.rewards.applyBoost(boostId);
     if (!result.ok) return result.error.message;
     const boost = rewards.boosts.find((item) => item.id === boostId);
     setRewards(result.data);
     setRewardLedger((current) => [{ id: `ledger-${Date.now()}`, createdAt: new Date().toISOString(), kind: 'boost', title: `${boost?.name ?? 'Boost'} prepared`, xp: 0, rubies: 0 }, ...current]);
     await haptic('success');
     return null;
-  }, [haptic, rewards.boosts]);
+  }, [activeApi, haptic, rewards.boosts]);
 
   const unlockCosmetic = useCallback(async (cosmeticId: string) => {
     const cosmetic = rewards.cosmetics.find((item) => item.id === cosmeticId);
-    const result = await odysseyApi.rewards.unlockCosmetic(cosmeticId);
+    const result = await activeApi.rewards.unlockCosmetic(cosmeticId);
     if (!result.ok) return result.error.message;
     setRewards(result.data);
     setRewardLedger((current) => [{ id: `ledger-${Date.now()}`, createdAt: new Date().toISOString(), kind: 'cosmetic', title: `${cosmetic?.name ?? 'Cosmetic'} unlocked`, xp: 0, rubies: -(cosmetic?.rubyPrice ?? 0) }, ...current]);
     await haptic('success');
     return null;
-  }, [haptic, rewards.cosmetics]);
+  }, [activeApi, haptic, rewards.cosmetics]);
 
   const useStreakProtection = useCallback(async (questId?: string) => {
     const quest = quests.find((item) => item.id === questId);
-    const result = await odysseyApi.rewards.useStreakProtection(questId);
+    const result = await activeApi.rewards.useStreakProtection(questId);
     if (!result.ok) return result.error.message;
     setRewards(result.data);
     if (questId) setQuests((current) => current.map((item) => item.id === questId ? { ...item, streakProtected: true } : item));
     setRewardLedger((current) => [{ id: `ledger-${Date.now()}`, createdAt: new Date().toISOString(), kind: 'streakProtection', title: quest ? `Streak protected after ${quest.title}` : 'Streak protection reserved for the next eligible miss', xp: 0, rubies: 0 }, ...current]);
     await haptic('success');
     return null;
-  }, [haptic, quests]);
+  }, [activeApi, haptic, quests]);
 
   const value = useMemo<AppContextValue>(
     () => ({

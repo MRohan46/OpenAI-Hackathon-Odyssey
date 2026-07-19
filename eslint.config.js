@@ -9,6 +9,7 @@ module.exports = defineConfig([
       '.vercel/**',
       '.codex/**',
       '.agents/**',
+      'supabase/functions/**',
       'node_modules/**',
       'qa/**',
     ],

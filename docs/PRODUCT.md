@@ -138,6 +138,10 @@ It gives users a familiar way to answer practical questions:
 
 The calendar is not dependent on Google Calendar and does not require external synchronization. It belongs to Odyssey, which means every scheduled activity can understand priority, intensity, proof requirements, rewards, streaks, roadmap connections, and boss progress.
 
+### Production data boundary
+
+In a configured production build, Supabase is the source of truth for private goals, roadmap stages, quests, completions, proof references, rewards, notifications, and preferences. The app uses Row Level Security so an authenticated traveler can access only their own records. Roadmap generation runs through a JWT-protected server-side function; Groq credentials are never shipped in the Expo client. The concrete schema, policies, and operational setup live in [SUPABASE_PRODUCTION_IMPLEMENTATION.md](SUPABASE_PRODUCTION_IMPLEMENTATION.md).
+
 That context is what turns a block of time into a quest.
 
 ### Habits and tasks

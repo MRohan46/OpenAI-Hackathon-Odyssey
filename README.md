@@ -66,3 +66,9 @@ Odyssey is not another place to collect checkmarks. It is a way to connect today
 The roadmap is clear. The final boss is still standing. That is fine—we know the next quest.
 
 For the complete product description, read [docs/PRODUCT.md](docs/PRODUCT.md).
+
+## Production data setup
+
+Configured builds use Supabase as the source of truth for goals, quests, completions, rewards, private proof, notifications, and preferences. The complete migration, RLS, Edge Function, secure Groq setup, and deployment steps are in [docs/SUPABASE_PRODUCTION_IMPLEMENTATION.md](docs/SUPABASE_PRODUCTION_IMPLEMENTATION.md).
+
+Never add a Groq secret as an `EXPO_PUBLIC_*` value: Expo embeds those values in the mobile/web client. Store `GROQ_API_KEY` and `GROQ_MODEL` as Supabase Edge Function secrets.

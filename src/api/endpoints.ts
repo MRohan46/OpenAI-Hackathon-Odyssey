@@ -23,6 +23,7 @@ export const endpoints = {
   proofAttach: '/v1/proof/attachments',
   proofPrivateUrl: (proofId: string) => `/v1/proof/${proofId}/private-url`,
   rewards: '/v1/rewards',
+  rewardLedger: '/v1/rewards/ledger',
   chest: (chestId: string) => `/v1/rewards/chests/${chestId}/open`,
   boost: (boostId: string) => `/v1/rewards/boosts/${boostId}/apply`,
   cosmetic: (cosmeticId: string) => `/v1/rewards/cosmetics/${cosmeticId}/select`,

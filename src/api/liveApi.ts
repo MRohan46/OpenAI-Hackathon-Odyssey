@@ -70,6 +70,7 @@ export const liveApi: OdysseyApi = {
   },
   rewards: {
     get: () => request(endpoints.rewards),
+    ledger: () => request(endpoints.rewardLedger),
     openChest: (chestId) => request(endpoints.chest(chestId), json('POST')),
     applyBoost: (boostId) => request(endpoints.boost(boostId), json('POST')),
     selectCosmetic: (cosmeticId) => request(endpoints.cosmetic(cosmeticId), json('POST')),

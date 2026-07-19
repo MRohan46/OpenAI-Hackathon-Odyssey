@@ -15,13 +15,14 @@ interface RoadmapLevelEditorProps {
   count: number;
   onChange: (input: Partial<RoadmapLevel>) => void;
   onMove: (direction: -1 | 1) => void;
-  onRegenerate: () => void;
+  onRegenerate: () => void | Promise<void>;
+  regenerating?: boolean;
   onSchedule: (title: string, kind: 'habit' | 'task') => void;
   readOnly?: boolean;
   schedulingEnabled?: boolean;
 }
 
-export function RoadmapLevelEditor({ level, index, count, onChange, onMove, onRegenerate, onSchedule, readOnly = false, schedulingEnabled = true }: RoadmapLevelEditorProps) {
+export function RoadmapLevelEditor({ level, index, count, onChange, onMove, onRegenerate, onSchedule, regenerating = false, readOnly = false, schedulingEnabled = true }: RoadmapLevelEditorProps) {
   const [expanded, setExpanded] = useState(index === 0 && !readOnly);
   const [newHabit, setNewHabit] = useState('');
   const [newTask, setNewTask] = useState('');
@@ -68,7 +69,7 @@ export function RoadmapLevelEditor({ level, index, count, onChange, onMove, onRe
             </View>
           ))}
           {!readOnly ? <View style={styles.addRow}><View style={styles.addField}><Field label="Add a suggested task" value={newTask} onChangeText={setNewTask} /></View><Button label="Add" icon={Plus} compact variant="secondary" onPress={() => add('tasks', newTask, () => setNewTask(''))} /></View> : null}
-          {!readOnly ? <Button label="Regenerate only this level" icon={RefreshCw} compact variant="secondary" onPress={onRegenerate} /> : null}
+          {!readOnly ? <Button label="Regenerate only this level" icon={RefreshCw} compact variant="secondary" onPress={onRegenerate} loading={regenerating} /> : null}
         </View>
       ) : null}
       {!readOnly ? <View style={styles.moves}>

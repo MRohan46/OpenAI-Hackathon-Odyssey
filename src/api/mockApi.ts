@@ -7,6 +7,7 @@ import {
   initialProfile,
   initialQuests,
   initialRewards,
+  initialRewardLedger,
   mathematicsRoadmap,
   overallAnalytics,
 } from '../data/mockData';
@@ -223,6 +224,10 @@ export const mockApi: OdysseyApi = {
     async get() {
       await delay(120);
       return success(rewards);
+    },
+    async ledger() {
+      await delay(120);
+      return success(structuredClone(initialRewardLedger));
     },
     async openChest(chestId) {
       await delay(760);

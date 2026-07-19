@@ -1,0 +1,2 @@
+[functions.generate-roadmap]
+verify_jwt = true

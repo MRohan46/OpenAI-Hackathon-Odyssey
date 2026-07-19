@@ -7,6 +7,7 @@ import type {
   OverallAnalytics,
   Quest,
   RewardInventory,
+  RewardLedgerEntry,
   RoadmapDraft,
   UserProfile,
 } from '../types/domain';
@@ -114,6 +115,7 @@ export interface OdysseyApi {
   };
   rewards: {
     get(): Promise<ApiResult<RewardInventory>>;
+    ledger(): Promise<ApiResult<RewardLedgerEntry[]>>;
     openChest(chestId: string): Promise<ApiResult<ChestReceipt>>;
     applyBoost(boostId: string): Promise<ApiResult<RewardInventory>>;
     selectCosmetic(cosmeticId: string): Promise<ApiResult<RewardInventory>>;
