@@ -73,9 +73,9 @@ const styles = StyleSheet.create({
   menu: {
     position: 'absolute',
     top: 48,
-    right: 48,
+    right: 0,
     width: 286,
-    maxWidth: '82%',
+    maxWidth: '100%',
     padding: spacing.sm,
     borderRadius: radii.lg,
     borderWidth: 1,

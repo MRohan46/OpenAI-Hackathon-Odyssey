@@ -68,6 +68,12 @@ describe('Tide Observatory Today screen', () => {
     expect(view.getByText('Completed · 6:52 AM')).toBeTruthy();
     expect(view.getByText('Upcoming · 8:30 PM–9:30 PM')).toBeTruthy();
     expect(view.getByText('Overdue · 5:30 PM')).toBeTruthy();
+    expect(view.getByText('Every quest is on one living road')).toBeTruthy();
+    expect(view.getByTestId('infinite-quest-road', { includeHiddenElements: true })).toBeTruthy();
+    expect(view.getByTestId('road-triptych-1', { includeHiddenElements: true })).toBeTruthy();
+    expect(view.getByTestId('quest-route-line', { includeHiddenElements: true })).toBeTruthy();
+    expect(view.getByTestId('flame-dragon-decoration', { includeHiddenElements: true })).toBeTruthy();
+    expect(view.getByTestId('guide-dragon-decoration', { includeHiddenElements: true })).toBeTruthy();
     expect(view.getByTestId('roadmap-card-quest-formulas')).toBeTruthy();
     expect(view.getByTestId('roadmap-card-quest-calculus')).toBeTruthy();
     expect(view.getByTestId('roadmap-card-quest-timed')).toBeTruthy();
