@@ -108,6 +108,7 @@ interface AppContextValue {
   signInWithGoogle(): Promise<string | null>;
   enterPresentationMode(): void;
   signOut(): Promise<void>;
+  syncAuthSession(): Promise<string | null>;
   generateRoadmap(input: Omit<RoadmapDraft, 'levels'>): Promise<string | null>;
   updateRoadmapLevel(levelId: string, input: Partial<RoadmapLevel>): void;
   regenerateRoadmapLevel(levelId: string): Promise<string | null>;
@@ -165,6 +166,7 @@ export function AppProvider({ children }: React.PropsWithChildren) {
   const [chestReceipt, setChestReceipt] = useState<ChestReceipt | null>(null);
   const completionMutation = useRef(0);
   const preferencesLoaded = useRef(false);
+  const accountHydrationVersion = useRef(0);
   const activeApi = presentationMode ? mockApi : odysseyApi;
 
   const resetAccountData = useCallback(() => {
@@ -176,10 +178,11 @@ export function AppProvider({ children }: React.PropsWithChildren) {
     setNotifications(usingSupabaseData ? [] : structuredClone(initialNotifications));
   }, []);
 
-  const hydrateAccountData = useCallback(async () => {
+  const hydrateAccountData = useCallback(async (version: number) => {
     const [profileResult, goalsResult, questsResult, rewardsResult, ledgerResult, notificationsResult, preferencesResult] = await Promise.all([
       odysseyApi.profile.get(), odysseyApi.goals.list(), odysseyApi.quests.list(), odysseyApi.rewards.get(), odysseyApi.rewards.ledger(), odysseyApi.notifications.list(), odysseyApi.notifications.getReminderPreferences(),
     ]);
+    if (version !== accountHydrationVersion.current) return false;
     if (!profileResult.ok || !goalsResult.ok || !questsResult.ok || !rewardsResult.ok || !ledgerResult.ok || !notificationsResult.ok || !preferencesResult.ok) return false;
     setProfile(profileResult.data);
     setGoals(goalsResult.data);
@@ -190,6 +193,22 @@ export function AppProvider({ children }: React.PropsWithChildren) {
     setPreferences((current) => ({ ...current, ...preferencesResult.data }));
     return true;
   }, []);
+
+  const applyAuthSession = useCallback((session: Awaited<ReturnType<NonNullable<typeof supabase>['auth']['getSession']>>['data']['session']) => {
+    const version = ++accountHydrationVersion.current;
+    setSignedIn(Boolean(session?.user));
+    if (session?.user) {
+      setPresentationSession(false);
+      setPresentationMode(false);
+      setProfile(userProfile(session.user));
+      // Auth callbacks must return promptly. Defer profile/data hydration so it
+      // cannot block Supabase's session event or protected-route transition.
+      setTimeout(() => { void hydrateAccountData(version); }, 0);
+    } else {
+      resetAccountData();
+    }
+    setAuthLoading(false);
+  }, [hydrateAccountData, resetAccountData]);
 
   useEffect(() => {
     if (usingSupabaseData) {
@@ -211,18 +230,8 @@ export function AppProvider({ children }: React.PropsWithChildren) {
     if (!client) return;
 
     let mounted = true;
-    const setSession = async (session: Awaited<ReturnType<typeof client.auth.getSession>>['data']['session']) => {
-      if (!mounted) return;
-      setSignedIn(Boolean(session?.user));
-      if (session?.user) {
-        setPresentationSession(false);
-        setPresentationMode(false);
-        setProfile(userProfile(session.user));
-        await hydrateAccountData();
-      } else {
-        resetAccountData();
-      }
-      setAuthLoading(false);
+    const setSession = (session: Awaited<ReturnType<typeof client.auth.getSession>>['data']['session']) => {
+      if (mounted) applyAuthSession(session);
     };
 
     client.auth.getSession().then(({ data }) => setSession(data.session)).catch(() => setSession(null));
@@ -239,7 +248,7 @@ export function AppProvider({ children }: React.PropsWithChildren) {
       subscription.subscription.unsubscribe();
       appStateSubscription?.remove();
     };
-  }, [hydrateAccountData, resetAccountData]);
+  }, [applyAuthSession]);
 
   const haptic = useCallback(
     async (kind: 'selection' | 'success' = 'selection') => {
@@ -259,50 +268,81 @@ export function AppProvider({ children }: React.PropsWithChildren) {
 
   const signIn = useCallback(async (email: string, password: string) => {
     if (!supabase) return SUPABASE_CONFIGURATION_ERROR;
-    const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
-    return error ? authError(error.message) : null;
-  }, []);
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+      if (error || !data.session) return authError(error?.message ?? 'Odyssey could not start a session for those credentials.');
+      applyAuthSession(data.session);
+      return null;
+    } catch (error) {
+      return authError(error instanceof Error ? error.message : undefined);
+    }
+  }, [applyAuthSession]);
 
   const signUp = useCallback(async (name: string, email: string, password: string) => {
     if (!supabase) return { error: SUPABASE_CONFIGURATION_ERROR, confirmationRequired: false };
-    const { data, error } = await supabase.auth.signUp({
-      email: email.trim(),
-      password,
-      options: { data: { name: name.trim() }, emailRedirectTo: Linking.createURL('auth/callback') },
-    });
-    return { error: error ? authError(error.message) : null, confirmationRequired: !error && !data.session };
-  }, []);
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email: email.trim(),
+        password,
+        options: { data: { name: name.trim() }, emailRedirectTo: Linking.createURL('auth/callback') },
+      });
+      if (!error && data.session) applyAuthSession(data.session);
+      return { error: error ? authError(error.message) : null, confirmationRequired: !error && !data.session };
+    } catch (error) {
+      return { error: authError(error instanceof Error ? error.message : undefined), confirmationRequired: false };
+    }
+  }, [applyAuthSession]);
 
   const signInWithGoogle = useCallback(async () => {
     if (!supabase) return SUPABASE_CONFIGURATION_ERROR;
-    const redirectTo = Linking.createURL('auth/callback');
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo, skipBrowserRedirect: true },
-    });
-    if (error || !data.url) return authError(error?.message);
+    try {
+      const redirectTo = Linking.createURL('auth/callback');
+      const { data: oauthData, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo, skipBrowserRedirect: true },
+      });
+      if (error || !oauthData.url) return authError(error?.message);
 
-    const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
-    if (result.type !== 'success') {
-      return result.type === 'cancel' || result.type === 'dismiss'
-        ? 'Google sign-in was cancelled.'
-        : 'Google sign-in did not complete. Please try again.';
+      const result = await WebBrowser.openAuthSessionAsync(oauthData.url, redirectTo);
+      if (result.type !== 'success') {
+        return result.type === 'cancel' || result.type === 'dismiss'
+          ? 'Google sign-in was cancelled.'
+          : 'Google sign-in did not complete. Please try again.';
+      }
+
+      const callback = new URL(result.url);
+      const code = callback.searchParams.get('code');
+      if (code) {
+        const { data: exchangeData, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+        if (exchangeError || !exchangeData.session) return authError(exchangeError?.message ?? 'Google did not return an Odyssey session.');
+        applyAuthSession(exchangeData.session);
+        return null;
+      }
+
+      const tokens = new URLSearchParams(callback.hash.replace(/^#/, ''));
+      const accessToken = tokens.get('access_token');
+      const refreshToken = tokens.get('refresh_token');
+      if (!accessToken || !refreshToken) return 'Google did not return a valid Odyssey session.';
+      const { data: sessionData, error: sessionError } = await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
+      if (sessionError || !sessionData.session) return authError(sessionError?.message ?? 'Google did not return an Odyssey session.');
+      applyAuthSession(sessionData.session);
+      return null;
+    } catch (error) {
+      return authError(error instanceof Error ? error.message : undefined);
     }
+  }, [applyAuthSession]);
 
-    const callback = new URL(result.url);
-    const code = callback.searchParams.get('code');
-    if (code) {
-      const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
-      return exchangeError ? authError(exchangeError.message) : null;
+  const syncAuthSession = useCallback(async () => {
+    if (!supabase) return SUPABASE_CONFIGURATION_ERROR;
+    try {
+      const { data, error } = await supabase.auth.getSession();
+      if (error || !data.session) return authError(error?.message ?? 'Your sign-in link did not create a usable session.');
+      applyAuthSession(data.session);
+      return null;
+    } catch (error) {
+      return authError(error instanceof Error ? error.message : undefined);
     }
-
-    const tokens = new URLSearchParams(callback.hash.replace(/^#/, ''));
-    const accessToken = tokens.get('access_token');
-    const refreshToken = tokens.get('refresh_token');
-    if (!accessToken || !refreshToken) return 'Google did not return a valid Odyssey session.';
-    const { error: sessionError } = await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
-    return sessionError ? authError(sessionError.message) : null;
-  }, []);
+  }, [applyAuthSession]);
 
   const enterPresentationMode = useCallback(() => {
     setPresentationSession(true);
@@ -317,13 +357,21 @@ export function AppProvider({ children }: React.PropsWithChildren) {
   }, []);
 
   const signOut = useCallback(async () => {
-    if (supabase) await supabase.auth.signOut();
-    setSignedIn(false);
-    setPresentationSession(false);
-    setPresentationMode(false);
-    resetAccountData();
-    setActiveRoadmapDraft(null);
-    setActiveProofUri(null);
+    ++accountHydrationVersion.current;
+    try {
+      // A local sign-out clears this device immediately and does not leave the
+      // traveler trapped in the app when a remote network request is unavailable.
+      if (supabase) await supabase.auth.signOut({ scope: 'local' });
+    } catch {
+      // Local application cleanup below is still required when Supabase cannot respond.
+    } finally {
+      setSignedIn(false);
+      setPresentationSession(false);
+      setPresentationMode(false);
+      resetAccountData();
+      setActiveRoadmapDraft(null);
+      setActiveProofUri(null);
+    }
   }, [resetAccountData]);
 
   const generateRoadmap = useCallback(async (input: Omit<RoadmapDraft, 'levels'>) => {
@@ -611,6 +659,7 @@ export function AppProvider({ children }: React.PropsWithChildren) {
       signInWithGoogle,
       enterPresentationMode,
       signOut,
+      syncAuthSession,
       generateRoadmap,
       updateRoadmapLevel,
       regenerateRoadmapLevel,
@@ -656,6 +705,7 @@ export function AppProvider({ children }: React.PropsWithChildren) {
       signInWithGoogle,
       enterPresentationMode,
       signOut,
+      syncAuthSession,
       generateRoadmap,
       updateRoadmapLevel,
       regenerateRoadmapLevel,

@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import { Bell, ChevronRight, Eye, LockKeyhole, LogOut, SlidersHorizontal } from 'lucide-react-native';
-import React from 'react';
+import React, { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { Button } from '../src/components/Button';
@@ -20,6 +20,16 @@ const rows = [
 export default function SettingsScreen() {
   const router = useRouter();
   const { profile, signOut } = useApp();
+  const [signingOut, setSigningOut] = useState(false);
+  const leaveOdyssey = async () => {
+    setSigningOut(true);
+    try {
+      await signOut();
+    } finally {
+      setSigningOut(false);
+      router.replace('/welcome');
+    }
+  };
   return (
     <LivingScreen dim={0.28}>
       <ScreenHeader back title="Settings" eyebrow="Make the shore yours" />
@@ -27,7 +37,7 @@ export default function SettingsScreen() {
       <View style={styles.stack}>
         {rows.map((row) => <Surface key={row.title} onPress={() => router.push(row.route)} accessibilityLabel={`Open ${row.title}`} padding="medium" style={styles.row}><View style={styles.icon}><row.icon size={20} color={colors.ink} /></View><View style={styles.copy}><Typography variant="label">{row.title}</Typography><Typography variant="micro" color={colors.inkSecondary}>{row.description}</Typography></View><ChevronRight size={19} color={colors.inkSecondary} /></Surface>)}
       </View>
-      <Button label="Sign out of presentation session" icon={LogOut} variant="ghost" onPress={async () => { await signOut(); router.replace('/welcome'); }} />
+      <Button label="Sign out" icon={LogOut} variant="ghost" onPress={leaveOdyssey} loading={signingOut} accessibilityHint="Clears this device's Odyssey session and returns to the welcome screen" />
       <Typography variant="micro" color={colors.inkSecondary} style={styles.center}>Frontend settings use the replaceable profile endpoint contract. Teammate-owned backend policies remain outside this repository.</Typography>
     </LivingScreen>
   );

@@ -140,8 +140,17 @@ export const supabaseApi: OdysseyApi = {
     async remove(questId) { const result = await rpc<null>('odyssey_delete_quest', { p_quest_id: questId }); return result.ok ? success(null) : result; },
     async complete(questId, input: CompletionInput) {
       let objectKey = input.proofUri;
-      if (objectKey?.startsWith('file:') || objectKey?.startsWith('content:') || objectKey?.startsWith('blob:')) { const uploaded = await uploadProof(objectKey); if ('error' in uploaded) return failed(uploaded.error, 'validation'); objectKey = uploaded.objectKey; }
+      let uploadedObjectKey: string | undefined;
+      if (objectKey?.startsWith('file:') || objectKey?.startsWith('content:') || objectKey?.startsWith('blob:')) {
+        const uploaded = await uploadProof(objectKey);
+        if ('error' in uploaded) return failed(uploaded.error, 'validation');
+        objectKey = uploaded.objectKey;
+        uploadedObjectKey = objectKey;
+      }
       const result = await rpc<Row>('odyssey_complete_quest', { p_quest_id: questId, p_actual_intensity: input.actualIntensity, p_proof_object_key: objectKey ?? null, p_client_mutation_id: input.clientMutationId });
+      if (!result.ok && uploadedObjectKey && supabase) {
+        await supabase.storage.from('odyssey-private-proof').remove([uploadedObjectKey]).catch(() => undefined);
+      }
       return result.ok ? success({ quest: questFrom(result.data.quest), rewards: result.data.rewards, bossHealth: result.data.bossHealth }) : result;
     },
   },

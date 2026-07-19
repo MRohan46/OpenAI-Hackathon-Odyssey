@@ -6,11 +6,13 @@ import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { LivingScreen } from '../../src/components/LivingScreen';
 import { Typography } from '../../src/components/Typography';
 import { supabase } from '../../src/lib/supabase';
+import { useApp } from '../../src/state/AppProvider';
 import { colors, spacing } from '../../src/theme/tokens';
 
 export default function AuthCallbackScreen() {
   const url = useURL();
   const router = useRouter();
+  const { syncAuthSession } = useApp();
   const [error, setError] = useState<string | null>(null);
   const client = supabase;
 
@@ -24,20 +26,29 @@ export default function AuthCallbackScreen() {
     const refreshToken = tokens.get('refresh_token');
 
     const complete = async () => {
-      const response = code
-        ? await client.auth.exchangeCodeForSession(code)
-        : accessToken && refreshToken
-          ? await client.auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
-          : { error: new Error('The confirmation link did not contain an Odyssey session.') };
-      if (response.error) {
-        setError(response.error.message);
-        return;
+      try {
+        const response = code
+          ? await client.auth.exchangeCodeForSession(code)
+          : accessToken && refreshToken
+            ? await client.auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
+            : { error: new Error('The confirmation link did not contain an Odyssey session.') };
+        if (response.error) {
+          setError(response.error.message);
+          return;
+        }
+        const sessionError = await syncAuthSession();
+        if (sessionError) {
+          setError(sessionError);
+          return;
+        }
+        router.replace('/(tabs)/today');
+      } catch (error) {
+        setError(error instanceof Error ? error.message : 'Odyssey could not complete the sign-in callback.');
       }
-      router.replace('/(tabs)/today');
     };
 
     void complete();
-  }, [client, router, url]);
+  }, [client, router, syncAuthSession, url]);
 
   if (!client) {
     return (

@@ -340,7 +340,7 @@ begin
   proof_required := row_quest.proof_policy = 'required';
   if proof_required and coalesce(p_proof_object_key, '') = '' then raise exception 'Private photo proof is required for this quest'; end if;
   if p_proof_object_key is not null and p_proof_object_key not like uid::text || '/proofs/%' then raise exception 'Invalid proof object key'; end if;
-  if p_proof_object_key is not null and p_proof_object_key <> '' and not exists (select 1 from storage.objects where bucket_id = 'odyssey-private-proof' and name = p_proof_object_key and owner_id = uid) then raise exception 'Private proof upload was not confirmed'; end if;
+  if p_proof_object_key is not null and p_proof_object_key <> '' and not exists (select 1 from storage.objects where bucket_id = 'odyssey-private-proof' and name = p_proof_object_key and owner_id::text = uid::text) then raise exception 'Private proof upload was not confirmed'; end if;
   select * into inv from public.reward_inventory where user_id = uid for update;
   if inv.active_boost_id = 'boost-focus' and p_actual_intensity = 'intense' then bonus_xp := 25; end if;
   update public.quests set status = 'completed', actual_intensity = p_actual_intensity, proof_object_key = nullif(p_proof_object_key,''), completed_at = now(), completion_mutation_id = p_client_mutation_id where id = row_quest.id returning * into row_quest;
@@ -359,7 +359,7 @@ declare uid uuid := auth.uid(); row_proof public.proofs%rowtype;
 begin
   if uid is null then raise exception 'Authentication is required'; end if;
   if p_object_key not like uid::text || '/proofs/%' then raise exception 'Invalid proof object key'; end if;
-  if not exists (select 1 from storage.objects where bucket_id = 'odyssey-private-proof' and name = p_object_key and owner_id = uid) then raise exception 'Private proof upload was not confirmed'; end if;
+  if not exists (select 1 from storage.objects where bucket_id = 'odyssey-private-proof' and name = p_object_key and owner_id::text = uid::text) then raise exception 'Private proof upload was not confirmed'; end if;
   update public.quests set proof_object_key = p_object_key where id = p_quest_id and user_id = uid and status = 'completed' and proof_object_key is null;
   if not found then raise exception 'A proof can only be attached once to one of your completed quests'; end if;
   insert into public.proofs(user_id, quest_id, object_key, captured_at) values(uid, p_quest_id, p_object_key, p_captured_at) returning * into row_proof;

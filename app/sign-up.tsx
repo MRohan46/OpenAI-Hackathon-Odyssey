@@ -30,7 +30,7 @@ export default function SignUpScreen() {
   const [googleLoading, setGoogleLoading] = useState(false);
   const { control, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { name: 'Maya', email: 'maya@example.com', password: 'odyssey!' },
+    defaultValues: { name: '', email: '', password: '' },
   });
   const submit = handleSubmit(async (values) => {
     setApiError(null);

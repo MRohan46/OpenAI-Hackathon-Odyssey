@@ -25,7 +25,7 @@ export default function SignInScreen() {
   const [googleLoading, setGoogleLoading] = useState(false);
   const { control, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { email: 'maya@example.com', password: 'odyssey' },
+    defaultValues: { email: '', password: '' },
   });
 
   const submit = handleSubmit(async (values) => {
