@@ -1,94 +1,92 @@
-# Odyssey Tide Observatory Production QA
+# First Island Hero — Design QA
 
-## QA target
+- **Source visual truth:** `.agents/audits/hero-2026-07-19/source-visual-truth.jpg`
+- **Mobile implementation:** `.agents/audits/hero-2026-07-19/mobile-production.png`
+- **Desktop implementation with WebGL:** `.agents/audits/hero-2026-07-19/desktop-production-webgl.png`
+- **Mobile comparison:** `.agents/audits/hero-2026-07-19/mobile-source-comparison.jpg`
+- **Desktop comparison:** `.agents/audits/hero-2026-07-19/desktop-source-comparison.jpg`
+- **Viewports:** 390 × 844 mobile; 320 × 700 compact; 1440 × 900 desktop
+- **State:** Welcome route, normal motion; reduced-motion and WebGL-unavailable fallbacks checked separately
 
-- Source visual truth: `docs/awwwards-today-demo/02-tide-observatory.png`
-- Final implementation capture: `qa/tide-observatory/main-upgrade/final-top-390x844.png`
-- Full-roadmap evidence: `qa/tide-observatory/main-upgrade/final-roadmap-scroll-390x844.png`
-- Quest-navigator evidence: `qa/tide-observatory/main-upgrade/final-navigator-open-390x844.png`
-- Full-view comparison evidence: `qa/tide-observatory/main-upgrade/comparison-source-vs-main.png`
-- Responsive evidence: `qa/tide-observatory/main-upgrade/final-responsive-320x700.png`
-- Target viewport: 390 × 844 CSS pixels, light mode
-- Target state: Today, Friday 17 July; overall streak 14; roadmap level 4 of 10; Study Boss at 62% health; Calculus Focus Session scheduled for 7:00 PM
-- Browser: agent-browser Chromium session against the exported production web build
+## Full-view comparison evidence
 
-The comparison uses an unframed 390 × 844 rendering for both source and implementation. Separate top, scrolled-roadmap, navigator, and narrow-mobile captures prove that the visual direction survives the utility-complete production state instead of only matching a static hero frame.
+The comparison boards place the supplied left/right creature references, the selected coastal-route background, and Odyssey's locked Living Shore north-star beside the rendered production export. The implementation preserves the bright turquoise route, editorial Bricolage hierarchy, calm native controls, and broad Living Shore radii while introducing the requested game-world progression framing.
 
-## Findings
+Both supplied creatures are present as clean transparent assets, placed on opposite sides, tilted in opposing directions, and scaled without stretching. The route artwork remains visible through the center. Native text and controls sit above the image/Three.js world, so the visual spectacle does not rasterize or obscure the product's authority and navigation boundaries.
 
-- P0: none.
-- P1: none.
-- P2: none after the iterations below.
-
-The final implementation preserves the source's coastal-map composition, luminous water, curved route, lighthouse destination, shell waypoint, gold active island, sea-glass completion marker, editorial hierarchy, and floating navigation. Every real quest is now placed on the scrollable route, and the dropdown provides direct navigation without flattening or hiding task state. Remaining differences are intentional product adaptations rather than unresolved fidelity defects.
+A separate focused crop was not needed: the 390 × 844 production capture preserves the source assets, headline, supporting copy, route approval panel, and both primary navigation controls at readable inspection size. Exact browser geometry supplements the visual evidence: `bodyScrollWidth` equals `bodyClientWidth` at 320, 390, and 1440 pixels, and all principal controls remain inside the target viewport.
 
 ## Required fidelity surfaces
 
 ### Fonts and typography
 
-- Bricolage Grotesque remains the display face and Manrope remains the interface/data face.
-- The implementation increases active-quest metadata and CTA sizing relative to the generated mock so the primary action remains readable and touch-safe.
-- Text remains native rather than rasterized. Wrapping is stable at 390 × 844, and the 320 × 700 pass keeps `Begin quest` on one line.
+- Bricolage Grotesque remains the display family and Manrope remains the UI/body family, matching Odyssey's locked system.
+- The mobile headline resolves into a deliberate three-line silhouette at 390 px, with no truncation or horizontal overflow.
+- Desktop hierarchy expands to 78 px without displacing the two main calls to action beyond the 900 px viewport.
+- Eyebrows use restrained tracking and remain supporting labels rather than a third display style.
 
 ### Spacing and layout rhythm
 
-- The five visual bands remain recognizable: orientation, horizon, route, active action, and navigation.
-- The route, quest labels, marker layers, lighthouse and shoreline stay aligned at both tested viewports.
-- The bottom navigation floats over the scene while the content scrolls beneath it; every card can be brought fully above the navigation.
+- The hero uses one centered world composition instead of stacked generic cards.
+- Mobile companion placement frames the central route and avoids the headline and calls to action.
+- The route approval panel bridges the cinematic world and native action area; its three stages stay evenly distributed at 320, 390, and 1440 px.
+- 390 × 844: primary action spans x=16–374 and y=695–751; secondary spans x=16–374 and y=759–815.
+- 320 × 700: primary spans y=559–615 and secondary spans y=623–679.
+- 1440 × 900: primary and secondary actions remain aligned as a balanced pair.
 
 ### Colors and visual tokens
 
-- The screen uses Odyssey's locked navy, sun gold, coral, turquoise, sky and sand tokens.
-- High-priority copy uses the accessible coral text token rather than the brighter decorative coral.
-- Roadmap level and boss health remain separate labeled progress bars.
+- Deep Odyssey ink, warm sun yellow, turquoise water, and mist-white surfaces map to the existing product tokens.
+- The lower translucent ink veil preserves button/card contrast without hiding the route artwork.
+- Yellow remains an accent rather than body text; white and ink carry the readable content.
 
 ### Image quality and asset fidelity
 
-- `coastal-route-scroll-background.png` is a dedicated 853 × 1844 continuous scene plate with no baked UI, duplicated landmarks, or repeated texture seam.
-- `active-sun-island.png` and `tide-glint.png` are separate transparent RGBA layers, not CSS or SVG approximations.
-- The active island sits on the scene's existing pedestal without a halo or double base.
+- The supplied creature images were background-cleaned non-destructively into `assets/images/first-island/` and retain their original line art and color treatment.
+- Both outputs have RGBA channels with transparent corners and no visible checkerboard in production captures.
+- The route background uses the existing 2.5 MB coastal artwork at cover sizing, with no stretched sprite sheets or placeholder imagery.
+- WebGL adds 36 drift particles, 11 animated haze volumes, three route rings, three light shafts, and three refractive route shards. Unsupported WebGL renders the same complete hero without a blank region or error overlay.
 
 ### Copy and content
 
-- The screen retains the selected concept's date, streak, headline, roadmap level, boss state, active quest, upcoming quest and four-tab navigation.
-- The completed label intentionally shows `Completed · 6:52 AM`, sourced from the completion record, rather than copying the generated mock's `6:30 PM`. Product truth outranks visual-reference copy.
-- Timed problems, Calculus Focus Session, Formula review, and Evening mobility each render as their own roadmap card.
-- Each card exposes status, truthful time, duration, priority, planned intensity, earned rewards or boss damage, recurrence, and proof policy. Completed work also distinguishes planned from actual intensity.
-- The `Today's route` dropdown lists every quest and jumps directly to its roadmap position.
+- “World 01 / First Island,” “Choose / Chart / Conquer,” and the ten-level/mini-boss/final-victory language provide game progression without copying another game's UI.
+- “Your route · always editable” and “You approve every level” preserve Odyssey's user-control rule for AI-generated roadmaps.
+- Sign-up, sign-in, and demo labels remain explicit and all three routes are live.
+
+## Accessibility and interaction states
+
+- Decorative companions, background, and Three.js atmosphere are removed from the accessibility tree.
+- Buttons retain native roles, labels, hints, focusability, and 44–56 px minimum heights.
+- Reduced-motion preference stops entrance loops, companion float, background drift, and the Three.js scene's continuous motion.
+- Trusted browser input verified `/sign-up`, `/sign-in`, and `/today` navigation from the production export with no application console errors.
 
 ## Comparison history
 
-| Pass | Severity | Earlier finding | Fix made | Post-fix evidence |
-| --- | --- | --- | --- | --- |
-| 1 | P1 | Rich metadata cards overlapped the active quest and obstructed its CTA. | Compacted the metadata grid, reserved explicit vertical bands, and made scene height data-driven. | `qa/tide-observatory/main-upgrade/history/pass1-top-390x844.png` → final capture |
-| 2 | P1 | Repeating the original scene plate created a hard horizontal seam when the roadmap scrolled. | Generated one continuous long-route background and removed the repeated plate. | `qa/tide-observatory/main-upgrade/history/pass2-roadmap-scroll-390x844.png` → final scrolled capture |
-| 3 | P2 | The lighthouse cropped too aggressively at 320 px and the long date wrapped. | Added compact scene positioning and a short date treatment below 360 px. | `qa/tide-observatory/main-upgrade/final-responsive-320x700.png` |
-| 4 | P2 | The quest navigator initially repeated scheduled time for completed work. | Bound completed entries to `completedAt` and kept scheduled time for active/upcoming entries. | Final navigator capture and focused tests |
+### Iteration 1 — P0 WebGL capability failure
 
-## Interaction, accessibility and runtime evidence
+- **Earlier finding:** Headless Chrome without a WebGL context received a renderer creation error because the new Canvas mounted unconditionally.
+- **Fix:** Added a capability probe and made the raster/native motion composition the intentional fallback.
+- **Post-fix evidence:** 390 × 844 production fallback reports zero canvases, no error toast, no console errors, and a complete rendered hero. SwiftShader verification reports one canvas and a complete rendered hero.
 
-- `Begin quest` navigated to `/quest/quest-calculus/complete`; the completion screen exposed Light, Normal, Intense, Add proof and Confirm completed quest controls.
-- The dropdown exposed four named jump controls with distinct scheduled, upcoming, completed, and overdue states. Selecting Evening mobility moved the roadmap scroll position to 506 px.
-- The final interactive snapshot exposed named buttons for notifications, quest creation, all four quests, the primary CTA, and single-name Today/Journey/Calendar/Profile tabs.
-- Roadmap level and boss health remain named progress bars in component tests.
-- With browser reduced motion enabled, screenshots captured two seconds apart were byte-identical, proving the drift and pulse layers became static.
-- The production export reported no browser application errors or console warnings during the final Today capture.
-- Expo's development server remains susceptible to a host watcher/DevTools sandbox failure, so final browser QA used the stable exported production bundle. This is an environment limitation, not an application runtime error.
+### Iteration 2 — P2 compact vertical fit
 
-## Open questions and follow-up polish
+- **Earlier finding:** At 320 × 700, the primary and secondary actions began below the viewport.
+- **Fix:** Added compact headline/body scale, tightened short-screen spacing, and reduced the companion-stage scale without changing the 390 or desktop composition.
+- **Post-fix evidence:** At 320 × 700, the primary action ends at y=615 and secondary ends at y=679; horizontal scroll width remains exactly 320.
 
-- P3: notification and create-quest controls are intentionally present even though the generated source omits them; they preserve current Today functionality.
-- P3: metadata makes the production state denser than the concept image; the density is intentional and remains organized by card hierarchy, route position, and dropdown navigation.
-- Native-device GPU and memory profiling remains a release concern, not a blocker for this branch experiment.
+## Findings
+
+- No actionable P0, P1, or P2 design issues remain.
+- P3 follow-up: the third “Explore the living world” action intentionally begins just below the initial 390 × 844 fold; it remains reachable by a short scroll while the two decision-critical actions stay fully visible.
 
 ## Implementation checklist
 
-- [x] Source and implementation compared at the same 390 × 844 viewport.
-- [x] Top, full-roadmap, dropdown, and narrow-mobile states reviewed.
-- [x] All P0/P1/P2 findings fixed and recaptured.
-- [x] Primary CTA and direct quest navigation exercised in the browser.
-- [x] Reduced-motion and narrow-viewport behavior verified.
-- [x] Native text, progress semantics and backend-ready data paths preserved.
-- [x] Prior card-based Today screen retained as a compilable rollback component.
+- [x] Supplied creatures placed left and right with transparent backgrounds
+- [x] Existing Living Shore route converted into a First Island world map
+- [x] Ambient, responsive, entrance, and reduced-motion states implemented
+- [x] WebGL capability fallback implemented
+- [x] Mobile, compact, desktop, and production-export captures inspected
+- [x] Primary navigation interactions verified
+- [x] Fonts, spacing, tokens, imagery, and copy checked
 
 final result: passed

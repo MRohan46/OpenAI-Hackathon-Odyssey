@@ -25,13 +25,15 @@ import { colors } from '../src/theme/tokens';
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
 
 function AuthGate({ children }: React.PropsWithChildren) {
-  const { signedIn, authLoading } = useApp();
+  const { signedIn, presentationMode, authLoading } = useApp();
   const segments = useSegments();
   const firstSegment = segments[0];
   const isPublicRoute = firstSegment === undefined || firstSegment === 'welcome' || firstSegment === 'sign-in' || firstSegment === 'sign-up' || String(firstSegment) === 'auth';
+  const isTodayRoute = firstSegment === 'today' || (firstSegment === '(tabs)' && segments[1] === 'today');
+  const isPresentationRoute = presentationMode && isTodayRoute;
 
   if (authLoading) return null;
-  if (!signedIn && !isPublicRoute) return <Redirect href="/welcome" />;
+  if (!signedIn && !isPublicRoute && !isPresentationRoute) return <Redirect href="/welcome" />;
   if (signedIn && (firstSegment === undefined || firstSegment === 'welcome')) return <Redirect href="/(tabs)/today" />;
   return <>{children}</>;
 }

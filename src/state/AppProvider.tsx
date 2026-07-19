@@ -31,6 +31,26 @@ import type {
 import { supabase, SUPABASE_CONFIGURATION_ERROR } from '../lib/supabase';
 
 const PREFERENCES_KEY = 'odyssey.preferences.v1';
+const PRESENTATION_SESSION_KEY = 'odyssey.presentation-session.v1';
+
+const presentationSessionActive = () => {
+  if (Platform.OS !== 'web' || typeof sessionStorage === 'undefined') return false;
+  try {
+    return sessionStorage.getItem(PRESENTATION_SESSION_KEY) === 'active';
+  } catch {
+    return false;
+  }
+};
+
+const setPresentationSession = (active: boolean) => {
+  if (Platform.OS !== 'web' || typeof sessionStorage === 'undefined') return;
+  try {
+    if (active) sessionStorage.setItem(PRESENTATION_SESSION_KEY, 'active');
+    else sessionStorage.removeItem(PRESENTATION_SESSION_KEY);
+  } catch {
+    // A blocked storage API must not prevent the in-memory presentation session.
+  }
+};
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -63,6 +83,7 @@ interface AppContextValue {
   notifications: NotificationItem[];
   preferences: AppPreferences;
   signedIn: boolean;
+  presentationMode: boolean;
   authLoading: boolean;
   activeRoadmapDraft: RoadmapDraft | null;
   activeProofUri: string | null;
@@ -74,6 +95,7 @@ interface AppContextValue {
   signIn(email: string, password: string): Promise<string | null>;
   signUp(name: string, email: string, password: string): Promise<SignUpResult>;
   signInWithGoogle(): Promise<string | null>;
+  enterPresentationMode(): void;
   signOut(): Promise<void>;
   generateRoadmap(input: Omit<RoadmapDraft, 'levels'>): Promise<string | null>;
   updateRoadmapLevel(levelId: string, input: Partial<RoadmapLevel>): void;
@@ -121,6 +143,7 @@ export function AppProvider({ children }: React.PropsWithChildren) {
   const [notifications, setNotifications] = useState<NotificationItem[]>(structuredClone(initialNotifications));
   const [preferences, setPreferences] = useState<AppPreferences>(structuredClone(initialPreferences));
   const [signedIn, setSignedIn] = useState(false);
+  const [presentationMode, setPresentationMode] = useState(presentationSessionActive);
   const [authLoading, setAuthLoading] = useState(() => Boolean(supabase));
   const [activeRoadmapDraft, setActiveRoadmapDraft] = useState<RoadmapDraft | null>(null);
   const [activeProofUri, setActiveProofUri] = useState<string | null>(null);
@@ -151,7 +174,11 @@ export function AppProvider({ children }: React.PropsWithChildren) {
     const setSession = (session: Awaited<ReturnType<typeof client.auth.getSession>>['data']['session']) => {
       if (!mounted) return;
       setSignedIn(Boolean(session?.user));
-      if (session?.user) setProfile(userProfile(session.user));
+      if (session?.user) {
+        setPresentationSession(false);
+        setPresentationMode(false);
+        setProfile(userProfile(session.user));
+      }
       setAuthLoading(false);
     };
 
@@ -234,9 +261,16 @@ export function AppProvider({ children }: React.PropsWithChildren) {
     return sessionError ? authError(sessionError.message) : null;
   }, []);
 
+  const enterPresentationMode = useCallback(() => {
+    setPresentationSession(true);
+    setPresentationMode(true);
+  }, []);
+
   const signOut = useCallback(async () => {
     if (supabase) await supabase.auth.signOut();
     setSignedIn(false);
+    setPresentationSession(false);
+    setPresentationMode(false);
     setProfile(structuredClone(initialProfile));
     setGoals(structuredClone(initialGoals));
     setQuests(structuredClone(initialQuests));
@@ -501,6 +535,7 @@ export function AppProvider({ children }: React.PropsWithChildren) {
       notifications,
       preferences,
       signedIn,
+      presentationMode,
       authLoading,
       activeRoadmapDraft,
       activeProofUri,
@@ -512,6 +547,7 @@ export function AppProvider({ children }: React.PropsWithChildren) {
       signIn,
       signUp,
       signInWithGoogle,
+      enterPresentationMode,
       signOut,
       generateRoadmap,
       updateRoadmapLevel,
@@ -544,6 +580,7 @@ export function AppProvider({ children }: React.PropsWithChildren) {
       notifications,
       preferences,
       signedIn,
+      presentationMode,
       authLoading,
       activeRoadmapDraft,
       activeProofUri,
@@ -555,6 +592,7 @@ export function AppProvider({ children }: React.PropsWithChildren) {
       signIn,
       signUp,
       signInWithGoogle,
+      enterPresentationMode,
       signOut,
       generateRoadmap,
       updateRoadmapLevel,
