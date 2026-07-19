@@ -30,7 +30,6 @@ export function FirstIslandCinematicIntro() {
 
   useEffect(() => {
     if (reducedMotion) {
-      thunderPlayer.pause();
       progress.value = 1;
       lightning.value = 0;
       return;
@@ -70,13 +69,23 @@ export function FirstIslandCinematicIntro() {
         lightning.value = withTiming(value, { duration, easing: Easing.linear });
       }, delay),
     );
-    const thunderTimer = setTimeout(() => thunderPlayer.play(), lightningSteps[0][0]);
+
+    return () => [...timers, ...lightningTimers].forEach(clearTimeout);
+  }, [lightning, progress, reducedMotion]);
+
+  useEffect(() => {
+    if (reducedMotion) {
+      thunderPlayer.pause();
+      return;
+    }
+
+    const thunderTimer = setTimeout(() => thunderPlayer.play(), 2390);
 
     return () => {
-      [...timers, ...lightningTimers, thunderTimer].forEach(clearTimeout);
+      clearTimeout(thunderTimer);
       thunderPlayer.pause();
     };
-  }, [lightning, progress, reducedMotion, thunderPlayer]);
+  }, [reducedMotion, thunderPlayer]);
 
   const deepFogStyle = useAnimatedStyle(() => ({
     opacity: interpolate(progress.value, [0, 0.72, 0.83, 1], [1, 1, 0.46, 0]),
