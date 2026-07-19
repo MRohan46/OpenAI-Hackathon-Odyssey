@@ -1,64 +1,59 @@
-# Design QA — First Island thunder-and-mist opening
+# Design QA — Infinite three-panel quest roadmap
 
 ## Comparison target
 
-- **Source visual truth:** `/tmp/codex-clipboard-QPwSCa.png` — the user-supplied horizontal thunder hammer, paired with the requested motion sequence: blind deep mist, gavel-angle swing, branching lightning, hammer disappearance, world reveal, and persistent high-opacity lower mist.
-- **Rendered implementation:** Odyssey First Island welcome hero at the production web export served locally from `http://localhost:8082/`.
-- **Primary viewport:** 390 × 844, full-motion opening and settled hero.
-- **Additional viewports/states:** 1440 × 900 full motion; 390 × 844 reduced motion; 390 × 844 settled interaction smoke.
-- **Full-view comparison evidence:** `.agents/audits/thunder-mist-2026-07-19/source-sequence-comparison.jpg`.
-- **Focused comparison evidence:** `.agents/audits/thunder-mist-2026-07-19/hammer-impact-focused-comparison.jpg`.
+- **Source visual truth:** `qa/today-390x844-final.png` for the pre-change Today hierarchy and navigation contract; `assets/images/quest-roadmap/coastal-road-01.png`, `coastal-road-02.png`, and `coastal-road-03.png` for the three-road environment set; the two user-supplied dragon references preserved as `dragon-flame.png` and `dragon-guide.png`.
+- **Rendered implementation:** Odyssey Today from the local Expo web build.
+- **Primary viewport/state:** 390 × 844 touch viewport, top-of-road and mid-road states with four seeded quests.
+- **Compact viewport/state:** 320 × 700 touch viewport, top-of-road and quest navigator open.
+- **Full-view comparison evidence:** `qa/infinite-roadmap/full-view-comparison.png` combines the prior Today baseline with the final top and mid-road implementation.
+- **Focused comparison evidence:** `qa/infinite-roadmap/focused-road-assets-comparison.png` combines all three source road panels with the rendered mid-road state.
 
 ## Findings
 
 No actionable P0, P1, or P2 findings remain.
 
-- **Opening visibility:** The 120 ms frame is completely covered by the opaque deep-navy mist plate. No hero copy, islands, creatures, or controls leak through.
-- **Gavel motion:** The supplied horizontal silhouette remains recognizable while the rebuilt relic rotates through clear alternating raised and struck angles. It stays fully inside the mobile and desktop frames.
-- **Thunder impact:** The peak frame contains a detailed transparent lightning plate with a white-hot core, vertical strike, lateral branches, teal bloom, and restrained gold sparks. The effect visibly originates at the hammer instead of reading as a generic screen flash.
-- **Disappearance and reveal:** The hammer and lightning reach zero opacity before the deep opening veil clears. The settled hero retains a dense raster mist bank at 0.76–0.90 opacity across the lower 58% plus 18 Three.js haze volumes behind the foreground content.
-- **Fonts and typography:** Existing Bricolage Grotesque and Manrope hierarchy remains unchanged and readable after the reveal. The cinematic contains no generated text.
-- **Spacing and layout rhythm:** The cinematic is a non-interactive absolute overlay and does not reflow the existing responsive hero. Browser metrics remain 390 px body/scroll width on mobile and 1,440 px on desktop with no horizontal overflow.
-- **Colors and visual tokens:** The generated assets use the existing navy, teal, ice-blue, ivory, and restrained-gold Living Shore palette. The settled mist increases atmosphere without changing semantic UI colors.
-- **Image quality and asset fidelity:** The hammer and lightning are real RGBA raster assets, not CSS or SVG approximations. Both have fully transparent corners, zero nontransparent border pixels, and no chroma remnants. The mist is a purpose-built opaque 16:9 plate with a naturally thinning navy top and dense lower bank, avoiding a hard crop boundary.
-- **Copy and content:** Existing Odyssey copy, editable-roadmap promise, progression stages, and CTA labels are unchanged.
-- **Icons:** Existing icon family, alignment, and sizing are unchanged.
-- **Accessibility and interaction:** Reduced motion skips the hammer, lightning, flash, fog movement, and Three.js motion after the accessibility preference resolves; the captured settled state has every cinematic layer hidden except the static bottom mist. The overlay is hidden from accessibility and never intercepts pointer input. All three hero actions still pass trusted browser input.
+- **Core journey and interaction:** Every quest for the focused day is represented once on the data-driven route. The focused quest retains its status, time/deadline, duration, priority, planned/actual intensity, rewards, boss damage, recurrence, proof policy, attention reason, detail navigation, and Begin action. The navigator contains every quest, closes after selection, and scrolls to the correct quest.
+- **Fonts and typography:** Bricolage Grotesque remains the display face and Manrope remains the body/UI face. The stronger 39 px headline, 21 px focused-card title, compact 12–14 px metadata, and abbreviated 320 px date preserve hierarchy without clipping or unreadable wrapping.
+- **Spacing and layout rhythm:** The top glass card, goal/boss panel, first route marker, quest spacing, and persistent tab bar create a deliberate vertical cadence. Cards alternate sides without colliding with the route or characters. At 320 px, the scene uses one 2023 px triptych cycle rather than rounding to an empty second cycle.
+- **Colors and visual tokens:** The implementation stays inside Odyssey’s turquoise, warm sand, navy, white-mist, coral, success-teal, and sun-gold system. Status colors remain semantic, while the route receives a white contrast rail and navy dashed core for reliable visibility over all three environments.
+- **Image quality and asset fidelity:** The three generated 864 × 1821 road panels are real raster assets with matched camera, road width, lighting, and palette. They are feather-composited into a 504 KB 864 × 5143 WebP triptych, eliminating visible joins without loading three multi-megabyte PNGs at runtime. Both supplied characters remain recognizable and are treated as softly animated sticker companions; isolated checkerboard fragments were removed without replacing them with look-alikes.
+- **Copy and content:** “One clear step” is preserved. “Every quest is on one living road” explains the new interaction without exposing implementation language. “The road continues” closes the daily route without implying unearned progress.
+- **Icons and controls:** Existing Lucide iconography remains consistent. Notification, navigator, add, Begin, tab, close, and quest controls preserve 42–48 px practical touch targets and accessible labels.
+- **Responsiveness:** Browser metrics show `bodyWidth === documentWidth === viewportWidth` at both 390 and 320 px. The 320 px navigator remains inside the screen, and all four tab destinations remain visible. The unchanged application pages continue to use the shared 100%-width, 620 px-max `LivingScreen` shell; the 15-screen 390 × 844 evidence set under `.agents/audits/product-ui-2026-07-18/` covers welcome, journey, goal detail/builder, roadmap review, month/week calendar, quest builder, completion, proof, profile, rewards, analytics, and reminders.
+- **Accessibility and motion:** The route art, character companions, and SVG path are hidden from the accessibility tree and never intercept input. Quest cards and progress indicators remain semantic. Reduced-motion mode freezes character drift. High-contrast mode strengthens the route rail and image wash.
+- **Runtime quality:** Final managed isolated Chrome checks found no console errors, warnings, issues, error overlay, or horizontal overflow. The production export includes only the 504 KB triptych and two approximately 50 KB character assets for this feature.
 
 ## Comparison history
 
 ### Pass 1 — blocked
 
-- **[P2] Raw reference quality:** The supplied asset contained a visible checkerboard and did not match Odyssey's rendering quality.
-  - **Fix:** Rebuilt it as `thunder-gavel.png`, preserving the rectangular head, wrapped handle, embedded lightning, and end loop while introducing forged Living Shore materials and clean alpha.
-- **[P2] Thunder lacked authored detail:** A screen flash alone would not satisfy the requested visible branching strike.
-  - **Fix:** Added the independent transparent `thunder-impact.png` VFX plate with a central impact core and detailed branching bolts.
-- **[P2] Lower atmosphere read as a dark band:** The earlier `bottomVeil` border and 0.44 fill competed with the new mist and created a hard horizontal seam.
-  - **Fix:** Removed the border, reduced the fill to 0.20, and let the generated mist plate provide the visible lower density.
-- **[P2] One continuous timer was fragile for the required story beats:** The first sequence could compress the gavel and lightning beats during browser initialization.
-  - **Fix:** Replaced it with timer-anchored held poses and independent lightning flicker steps, keeping fog opaque until after hammer disappearance.
+- **[P2] Visible road-panel junction:** The initial runtime stacked the three PNGs directly, producing a horizontal brightness/geometry seam between panels 1 and 2.
+  - **Fix:** Feather-composited the three originals into `coastal-road-triptych.webp` and rendered that triptych as the repeatable cycle.
+- **[P2] Checkerboard fragments around supplied decorations:** The input PNGs contained an opaque checkerboard rather than alpha, and the first conservative mask left visible fragments at mobile scale.
+  - **Fix:** Applied a connected color mask and small-component cleanup, then placed the exact supplied characters inside restrained white sticker auras.
+- **[P2] Development error overlay:** Accessibility-only props were initially forwarded through the SVG web element, triggering a React development overlay.
+  - **Fix:** Moved the path into a decorative React Native wrapper with `aria-hidden`, then moved non-interactive pointer behavior into styles. Final console inspection is empty.
+- **[P2] Compact scene over-allocation:** A 37 px minimum-height mismatch at 320 px rounded one triptych into two complete cycles and created an unnecessary empty road tail.
+  - **Fix:** Matched the minimum scene bound to compact content. Final 320 px metrics are one triptych, 2023 px scroll height, and 700 px viewport height.
 
 ### Pass 2 — passed
 
-- Post-fix evidence shows distinct deep-fog, raised-gavel, thunder-impact, and settled-mist states.
-- The focused comparison confirms the source silhouette is preserved and the final effect substantially improves material quality and impact detail.
-- Mobile, desktop, reduced-motion, overflow, WebGL, console, and navigation checks have no remaining application-level blockers.
+- The combined full-view comparison shows stronger hierarchy and a materially more continuous quest journey than the prior Today layout.
+- The focused comparison shows all three road sources preserved in the rendered art direction with no visible runtime junction in the inspected mid-road state.
+- Final 390 × 844 and 320 × 700 captures show legible text, clean cards, working persistent tabs, correctly contained navigator, and intentional character placement.
+- Final browser metrics and console inspection contain no remaining P0/P1/P2 issue.
 
-## Verification evidence
+## Primary interactions tested
 
-- `390x844-opening-deep-fog.png`
-- `390x844-hammer-gavel-swing.png`
-- `390x844-thunder-impact-b.png`
-- `390x844-settled-bottom-mist.png`
-- `390x844-reduced-motion-settled.png`
-- `390x844-production-interactions.png`
-- `1440x900-opening-deep-fog.png`
-- `1440x900-hammer-gavel-swing.png`
-- `1440x900-settled-bottom-mist.png`
+- Open and close Today’s quest navigator.
+- Select “Calculus Focus Session” from the navigator and confirm the menu closes and scroll position changes to the selected quest.
+- Confirm Begin quest and every quest-detail control remain represented in the accessibility tree and covered by the Today interaction tests.
+- Confirm the 320 px and 390 px routes have no horizontal overflow or error overlay.
 
 ## Follow-up polish
 
-- **P3:** An optional sound-design pass could add a restrained low thunder crack, but audio was not requested and is deliberately absent from this visual-only scope.
+- **P3:** The user-supplied character files are only 148–156 px wide, so their intentional sticker treatment is preferable to enlarging them further. Higher-resolution transparent originals could improve edge fidelity later without changing layout or behavior.
 
 ## Final result
 
