@@ -38,14 +38,14 @@ function IslandAtmosphere({ reducedMotion }: FirstIslandSceneProps) {
 
   const haze = useMemo(
     () =>
-      Array.from({ length: 11 }, (_, index) => ({
+      Array.from({ length: 18 }, (_, index) => ({
         position: [
-          -4.8 + index * 0.94,
-          -1.2 + Math.sin(index * 1.4) * 1.35,
-          -2.2 + (index % 4) * 0.48,
+          -5.9 + index * 0.7,
+          -1.45 + Math.sin(index * 1.4) * 1.48,
+          -2.4 + (index % 5) * 0.42,
         ] as const,
-        scale: [2.2 + (index % 3) * 0.8, 0.58 + (index % 2) * 0.22, 1] as const,
-        opacity: 0.035 + (index % 3) * 0.016,
+        scale: [2.8 + (index % 4) * 0.72, 0.74 + (index % 3) * 0.2, 1] as const,
+        opacity: 0.055 + (index % 4) * 0.014,
       })),
     [],
   );

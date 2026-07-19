@@ -20,6 +20,7 @@ import { useApp } from '../state/AppProvider';
 import { colors, fontFamilies, radii, spacing } from '../theme/tokens';
 import { FirstIslandBackdrop } from '../world/FirstIslandBackdrop';
 import { Button } from './Button';
+import { FirstIslandCinematicIntro } from './FirstIslandCinematicIntro';
 import { Typography } from './Typography';
 
 const skySerpent = require('../../assets/images/first-island/sky-serpent.png');
@@ -271,6 +272,7 @@ export function FirstIslandHero() {
           </Animated.View>
         </ScrollView>
       </SafeAreaView>
+      <FirstIslandCinematicIntro />
     </View>
   );
 }

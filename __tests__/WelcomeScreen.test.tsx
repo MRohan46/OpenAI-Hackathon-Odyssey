@@ -41,6 +41,12 @@ jest.mock('../src/world/FirstIslandBackdrop', () => {
   return { FirstIslandBackdrop: () => ReactModule.createElement(View, { testID: 'first-island-backdrop' }) };
 });
 
+jest.mock('../src/components/FirstIslandCinematicIntro', () => {
+  const ReactModule = jest.requireActual<typeof import('react')>('react');
+  const { View } = jest.requireActual<typeof import('react-native')>('react-native');
+  return { FirstIslandCinematicIntro: () => ReactModule.createElement(View, { testID: 'first-island-cinematic-intro' }) };
+});
+
 jest.mock('expo-image', () => {
   const ReactModule = jest.requireActual<typeof import('react')>('react');
   const { View } = jest.requireActual<typeof import('react-native')>('react-native');
@@ -82,6 +88,7 @@ describe('First Island welcome hero', () => {
     );
 
     expect(view.getByTestId('first-island-backdrop')).toBeTruthy();
+    expect(view.getByTestId('first-island-cinematic-intro')).toBeTruthy();
     expect(view.getByText(/WORLD 01/)).toBeTruthy();
     expect(view.getByText('Turn one goal into a world worth crossing.')).toBeTruthy();
     expect(view.getByText('YOUR ROUTE · ALWAYS EDITABLE')).toBeTruthy();

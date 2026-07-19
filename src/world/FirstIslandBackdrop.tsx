@@ -14,16 +14,19 @@ import { useReducedMotion } from '../hooks/useReducedMotion';
 import { FirstIslandScene } from './FirstIslandScene';
 
 const archipelago = require('../../assets/images/tide-observatory/coastal-route-background.png');
+const deepMist = require('../../assets/images/first-island/deep-mist-veil.png');
 
 export function FirstIslandBackdrop() {
   const reducedMotion = useReducedMotion();
   const drift = useSharedValue(0);
   const breathe = useSharedValue(0);
+  const mist = useSharedValue(0);
 
   useEffect(() => {
     if (reducedMotion) {
       drift.value = 0;
       breathe.value = 0;
+      mist.value = 0;
       return;
     }
     drift.value = withRepeat(
@@ -36,7 +39,12 @@ export function FirstIslandBackdrop() {
       -1,
       true,
     );
-  }, [breathe, drift, reducedMotion]);
+    mist.value = withRepeat(
+      withTiming(1, { duration: 7600, easing: Easing.inOut(Easing.sin) }),
+      -1,
+      true,
+    );
+  }, [breathe, drift, mist, reducedMotion]);
 
   const imageMotion = useAnimatedStyle(() => ({
     transform: [
@@ -49,6 +57,15 @@ export function FirstIslandBackdrop() {
   const horizonMotion = useAnimatedStyle(() => ({
     opacity: interpolate(breathe.value, [0, 0.5, 1], [0.18, 0.34, 0.18]),
     transform: [{ scale: interpolate(breathe.value, [0, 1], [0.96, 1.08]) }],
+  }));
+
+  const mistMotion = useAnimatedStyle(() => ({
+    opacity: interpolate(mist.value, [0, 1], [0.76, 0.9]),
+    transform: [
+      { translateX: interpolate(mist.value, [0, 1], [-12, 12]) },
+      { translateY: interpolate(mist.value, [0, 1], [10, -4]) },
+      { scale: interpolate(mist.value, [0, 1], [1.08, 1.16]) },
+    ],
   }));
 
   return (
@@ -79,6 +96,20 @@ export function FirstIslandBackdrop() {
       <View style={styles.scene}>
         <FirstIslandScene reducedMotion={reducedMotion} />
       </View>
+      <Animated.View testID="persistent-bottom-mist" style={[styles.persistentMist, mistMotion]}>
+        <Image
+          accessible={false}
+          alt=""
+          accessibilityLabel=""
+          source={deepMist}
+          contentFit="cover"
+          contentPosition={{ top: '72%', left: '50%' }}
+          cachePolicy="memory-disk"
+          priority="high"
+          style={StyleSheet.absoluteFill}
+        />
+      </Animated.View>
+      <View style={styles.bottomMistDepth} />
     </View>
   );
 }
@@ -120,10 +151,25 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    height: '33%',
-    backgroundColor: 'rgba(4, 37, 72, 0.44)',
-    borderTopColor: 'rgba(255, 255, 255, 0.18)',
-    borderTopWidth: 1,
+    height: '30%',
+    backgroundColor: 'rgba(4, 37, 72, 0.2)',
     zIndex: 3,
+  },
+  persistentMist: {
+    position: 'absolute',
+    left: '-7%',
+    right: '-7%',
+    bottom: '-12%',
+    height: '58%',
+    zIndex: 5,
+  },
+  bottomMistDepth: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: '22%',
+    backgroundColor: 'rgba(220, 244, 246, 0.34)',
+    zIndex: 6,
   },
 });

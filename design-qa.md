@@ -1,92 +1,65 @@
-# First Island Hero — Design QA
+# Design QA — First Island thunder-and-mist opening
 
-- **Source visual truth:** `.agents/audits/hero-2026-07-19/source-visual-truth.jpg`
-- **Mobile implementation:** `.agents/audits/hero-2026-07-19/mobile-production.png`
-- **Desktop implementation with WebGL:** `.agents/audits/hero-2026-07-19/desktop-production-webgl.png`
-- **Mobile comparison:** `.agents/audits/hero-2026-07-19/mobile-source-comparison.jpg`
-- **Desktop comparison:** `.agents/audits/hero-2026-07-19/desktop-source-comparison.jpg`
-- **Viewports:** 390 × 844 mobile; 320 × 700 compact; 1440 × 900 desktop
-- **State:** Welcome route, normal motion; reduced-motion and WebGL-unavailable fallbacks checked separately
+## Comparison target
 
-## Full-view comparison evidence
-
-The comparison boards place the supplied left/right creature references, the selected coastal-route background, and Odyssey's locked Living Shore north-star beside the rendered production export. The implementation preserves the bright turquoise route, editorial Bricolage hierarchy, calm native controls, and broad Living Shore radii while introducing the requested game-world progression framing.
-
-Both supplied creatures are present as clean transparent assets, placed on opposite sides, tilted in opposing directions, and scaled without stretching. The route artwork remains visible through the center. Native text and controls sit above the image/Three.js world, so the visual spectacle does not rasterize or obscure the product's authority and navigation boundaries.
-
-A separate focused crop was not needed: the 390 × 844 production capture preserves the source assets, headline, supporting copy, route approval panel, and both primary navigation controls at readable inspection size. Exact browser geometry supplements the visual evidence: `bodyScrollWidth` equals `bodyClientWidth` at 320, 390, and 1440 pixels, and all principal controls remain inside the target viewport.
-
-## Required fidelity surfaces
-
-### Fonts and typography
-
-- Bricolage Grotesque remains the display family and Manrope remains the UI/body family, matching Odyssey's locked system.
-- The mobile headline resolves into a deliberate three-line silhouette at 390 px, with no truncation or horizontal overflow.
-- Desktop hierarchy expands to 78 px without displacing the two main calls to action beyond the 900 px viewport.
-- Eyebrows use restrained tracking and remain supporting labels rather than a third display style.
-
-### Spacing and layout rhythm
-
-- The hero uses one centered world composition instead of stacked generic cards.
-- Mobile companion placement frames the central route and avoids the headline and calls to action.
-- The route approval panel bridges the cinematic world and native action area; its three stages stay evenly distributed at 320, 390, and 1440 px.
-- 390 × 844: primary action spans x=16–374 and y=695–751; secondary spans x=16–374 and y=759–815.
-- 320 × 700: primary spans y=559–615 and secondary spans y=623–679.
-- 1440 × 900: primary and secondary actions remain aligned as a balanced pair.
-
-### Colors and visual tokens
-
-- Deep Odyssey ink, warm sun yellow, turquoise water, and mist-white surfaces map to the existing product tokens.
-- The lower translucent ink veil preserves button/card contrast without hiding the route artwork.
-- Yellow remains an accent rather than body text; white and ink carry the readable content.
-
-### Image quality and asset fidelity
-
-- The supplied creature images were background-cleaned non-destructively into `assets/images/first-island/` and retain their original line art and color treatment.
-- Both outputs have RGBA channels with transparent corners and no visible checkerboard in production captures.
-- The route background uses the existing 2.5 MB coastal artwork at cover sizing, with no stretched sprite sheets or placeholder imagery.
-- WebGL adds 36 drift particles, 11 animated haze volumes, three route rings, three light shafts, and three refractive route shards. Unsupported WebGL renders the same complete hero without a blank region or error overlay.
-
-### Copy and content
-
-- “World 01 / First Island,” “Choose / Chart / Conquer,” and the ten-level/mini-boss/final-victory language provide game progression without copying another game's UI.
-- “Your route · always editable” and “You approve every level” preserve Odyssey's user-control rule for AI-generated roadmaps.
-- Sign-up, sign-in, and demo labels remain explicit and all three routes are live.
-
-## Accessibility and interaction states
-
-- Decorative companions, background, and Three.js atmosphere are removed from the accessibility tree.
-- Buttons retain native roles, labels, hints, focusability, and 44–56 px minimum heights.
-- Reduced-motion preference stops entrance loops, companion float, background drift, and the Three.js scene's continuous motion.
-- Trusted browser input verified `/sign-up`, `/sign-in`, and `/today` navigation from the production export with no application console errors.
-
-## Comparison history
-
-### Iteration 1 — P0 WebGL capability failure
-
-- **Earlier finding:** Headless Chrome without a WebGL context received a renderer creation error because the new Canvas mounted unconditionally.
-- **Fix:** Added a capability probe and made the raster/native motion composition the intentional fallback.
-- **Post-fix evidence:** 390 × 844 production fallback reports zero canvases, no error toast, no console errors, and a complete rendered hero. SwiftShader verification reports one canvas and a complete rendered hero.
-
-### Iteration 2 — P2 compact vertical fit
-
-- **Earlier finding:** At 320 × 700, the primary and secondary actions began below the viewport.
-- **Fix:** Added compact headline/body scale, tightened short-screen spacing, and reduced the companion-stage scale without changing the 390 or desktop composition.
-- **Post-fix evidence:** At 320 × 700, the primary action ends at y=615 and secondary ends at y=679; horizontal scroll width remains exactly 320.
+- **Source visual truth:** `/tmp/codex-clipboard-QPwSCa.png` — the user-supplied horizontal thunder hammer, paired with the requested motion sequence: blind deep mist, gavel-angle swing, branching lightning, hammer disappearance, world reveal, and persistent high-opacity lower mist.
+- **Rendered implementation:** Odyssey First Island welcome hero at the production web export served locally from `http://localhost:8082/`.
+- **Primary viewport:** 390 × 844, full-motion opening and settled hero.
+- **Additional viewports/states:** 1440 × 900 full motion; 390 × 844 reduced motion; 390 × 844 settled interaction smoke.
+- **Full-view comparison evidence:** `.agents/audits/thunder-mist-2026-07-19/source-sequence-comparison.jpg`.
+- **Focused comparison evidence:** `.agents/audits/thunder-mist-2026-07-19/hammer-impact-focused-comparison.jpg`.
 
 ## Findings
 
-- No actionable P0, P1, or P2 design issues remain.
-- P3 follow-up: the third “Explore the living world” action intentionally begins just below the initial 390 × 844 fold; it remains reachable by a short scroll while the two decision-critical actions stay fully visible.
+No actionable P0, P1, or P2 findings remain.
 
-## Implementation checklist
+- **Opening visibility:** The 120 ms frame is completely covered by the opaque deep-navy mist plate. No hero copy, islands, creatures, or controls leak through.
+- **Gavel motion:** The supplied horizontal silhouette remains recognizable while the rebuilt relic rotates through clear alternating raised and struck angles. It stays fully inside the mobile and desktop frames.
+- **Thunder impact:** The peak frame contains a detailed transparent lightning plate with a white-hot core, vertical strike, lateral branches, teal bloom, and restrained gold sparks. The effect visibly originates at the hammer instead of reading as a generic screen flash.
+- **Disappearance and reveal:** The hammer and lightning reach zero opacity before the deep opening veil clears. The settled hero retains a dense raster mist bank at 0.76–0.90 opacity across the lower 58% plus 18 Three.js haze volumes behind the foreground content.
+- **Fonts and typography:** Existing Bricolage Grotesque and Manrope hierarchy remains unchanged and readable after the reveal. The cinematic contains no generated text.
+- **Spacing and layout rhythm:** The cinematic is a non-interactive absolute overlay and does not reflow the existing responsive hero. Browser metrics remain 390 px body/scroll width on mobile and 1,440 px on desktop with no horizontal overflow.
+- **Colors and visual tokens:** The generated assets use the existing navy, teal, ice-blue, ivory, and restrained-gold Living Shore palette. The settled mist increases atmosphere without changing semantic UI colors.
+- **Image quality and asset fidelity:** The hammer and lightning are real RGBA raster assets, not CSS or SVG approximations. Both have fully transparent corners, zero nontransparent border pixels, and no chroma remnants. The mist is a purpose-built opaque 16:9 plate with a naturally thinning navy top and dense lower bank, avoiding a hard crop boundary.
+- **Copy and content:** Existing Odyssey copy, editable-roadmap promise, progression stages, and CTA labels are unchanged.
+- **Icons:** Existing icon family, alignment, and sizing are unchanged.
+- **Accessibility and interaction:** Reduced motion skips the hammer, lightning, flash, fog movement, and Three.js motion after the accessibility preference resolves; the captured settled state has every cinematic layer hidden except the static bottom mist. The overlay is hidden from accessibility and never intercepts pointer input. All three hero actions still pass trusted browser input.
 
-- [x] Supplied creatures placed left and right with transparent backgrounds
-- [x] Existing Living Shore route converted into a First Island world map
-- [x] Ambient, responsive, entrance, and reduced-motion states implemented
-- [x] WebGL capability fallback implemented
-- [x] Mobile, compact, desktop, and production-export captures inspected
-- [x] Primary navigation interactions verified
-- [x] Fonts, spacing, tokens, imagery, and copy checked
+## Comparison history
+
+### Pass 1 — blocked
+
+- **[P2] Raw reference quality:** The supplied asset contained a visible checkerboard and did not match Odyssey's rendering quality.
+  - **Fix:** Rebuilt it as `thunder-gavel.png`, preserving the rectangular head, wrapped handle, embedded lightning, and end loop while introducing forged Living Shore materials and clean alpha.
+- **[P2] Thunder lacked authored detail:** A screen flash alone would not satisfy the requested visible branching strike.
+  - **Fix:** Added the independent transparent `thunder-impact.png` VFX plate with a central impact core and detailed branching bolts.
+- **[P2] Lower atmosphere read as a dark band:** The earlier `bottomVeil` border and 0.44 fill competed with the new mist and created a hard horizontal seam.
+  - **Fix:** Removed the border, reduced the fill to 0.20, and let the generated mist plate provide the visible lower density.
+- **[P2] One continuous timer was fragile for the required story beats:** The first sequence could compress the gavel and lightning beats during browser initialization.
+  - **Fix:** Replaced it with timer-anchored held poses and independent lightning flicker steps, keeping fog opaque until after hammer disappearance.
+
+### Pass 2 — passed
+
+- Post-fix evidence shows distinct deep-fog, raised-gavel, thunder-impact, and settled-mist states.
+- The focused comparison confirms the source silhouette is preserved and the final effect substantially improves material quality and impact detail.
+- Mobile, desktop, reduced-motion, overflow, WebGL, console, and navigation checks have no remaining application-level blockers.
+
+## Verification evidence
+
+- `390x844-opening-deep-fog.png`
+- `390x844-hammer-gavel-swing.png`
+- `390x844-thunder-impact-b.png`
+- `390x844-settled-bottom-mist.png`
+- `390x844-reduced-motion-settled.png`
+- `390x844-production-interactions.png`
+- `1440x900-opening-deep-fog.png`
+- `1440x900-hammer-gavel-swing.png`
+- `1440x900-settled-bottom-mist.png`
+
+## Follow-up polish
+
+- **P3:** An optional sound-design pass could add a restrained low thunder crack, but audio was not requested and is deliberately absent from this visual-only scope.
+
+## Final result
 
 final result: passed
