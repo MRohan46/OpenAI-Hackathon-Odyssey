@@ -113,16 +113,32 @@ This workflow allowed us to move quickly without sacrificing creativity or techn
 
 ## Screens / Modules
 
-### Wellcome Screen
+| Acessibility | Calander |
+| --- | --- |
+| ![Acessibility](assets/screens/acessibility.png) | ![Calander](assets/screens/calander.png) |
 
-![Wellcome Screen](assets/screens/Wellcome%20Screen.png)
+| Graphs | Notifications |
+| --- | --- |
+| ![Graphs](assets/screens/graphs.png) | ![Notifications](assets/screens/notifications.png) |
 
-### Sign up
+| Privacy and trust | Profile |
+| --- | --- |
+| ![Privacy and trust](assets/screens/privacy%20and%20trust.png) | ![Profile](assets/screens/profile.png) |
 
-![Sign up](assets/screens/Sign%20up.png)
+| Progress bars | Progress |
+| --- | --- |
+| ![Progress bars](assets/screens/progress%20bars.png) | ![Progress](assets/screens/progress.png) |
 
-### Privacy and trust
+| Reminders | Reward |
+| --- | --- |
+| ![Reminders](assets/screens/reminders.png) | ![Reward](assets/screens/reward.png) |
 
-![Privacy and trust](assets/screens/privacy%20and%20trust.png)
+| Set goal | Setting |
+| --- | --- |
+| ![Set goal](assets/screens/set%20goal.png) | ![Setting](assets/screens/setting.png) |
+
+| Sign up | Wellcome Screen |
+| --- | --- |
+| ![Sign up](assets/screens/Sign%20up.png) | ![Wellcome Screen](assets/screens/Wellcome%20Screen.png) |
 =======
 APK Link: https://drive.google.com/file/d/1SqtAEGkRww572so_wmJjL3MKV9mkU2xW/view?usp=drive_link
