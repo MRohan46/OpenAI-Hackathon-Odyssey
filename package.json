@@ -1,6 +1,7 @@
 {
   "name": "odyssey-mobile",
   "version": "1.0.0",
+  "packageManager": "npm@11.16.0",
   "main": "expo-router/entry",
   "dependencies": {
     "@expo-google-fonts/bricolage-grotesque": "^0.4.1",

@@ -55,6 +55,17 @@ Missing a required quest can break a streak and lose that quest's available rewa
 
 Groq credentials stay behind a protected server-side boundary and are never embedded in the mobile application. User goals, completion history, and proof images remain private to their owner.
 
+## Development setup
+
+Use npm for installs and scripts. The committed `package-lock.json` is the sole dependency lockfile.
+
+```bash
+npm ci
+npm run lint
+npm run typecheck
+npm test
+```
+
 ## Visual Direction
 
 Odyssey uses a **minimalistic beach-themed direction**: calm, open, focused, and adventurous without becoming noisy. The product should feel like beginning a long journey from a quiet shore.

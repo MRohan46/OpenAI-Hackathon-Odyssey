@@ -31,6 +31,7 @@ import type {
 } from '../types/domain';
 import { supabase, SUPABASE_CONFIGURATION_ERROR } from '../lib/supabase';
 import { buildDeviceReminders } from '../utils/deviceReminders';
+import { normalizeRoadmapLevels } from '../utils/roadmap';
 
 const PREFERENCES_KEY = 'odyssey.preferences.v1';
 const PRESENTATION_SESSION_KEY = 'odyssey.presentation-session.v1';
@@ -505,13 +506,13 @@ export function AppProvider({ children }: React.PropsWithChildren) {
       if (sourceIndex < 0 || targetIndex < 0 || targetIndex >= draft.levels.length) return draft;
       const levels = [...draft.levels];
       [levels[sourceIndex], levels[targetIndex]] = [levels[targetIndex], levels[sourceIndex]];
-      return { ...draft, levels: levels.map((level, index) => ({ ...level, number: index + 1 })) };
+      return { ...draft, levels: normalizeRoadmapLevels(levels) };
     });
   }, []);
 
   const acceptRoadmap = useCallback(async () => {
     if (!activeRoadmapDraft) return { goal: null, error: 'There is no roadmap proposal to activate.' };
-    const result = await activeApi.roadmaps.accept(activeRoadmapDraft);
+    const result = await activeApi.roadmaps.accept({ ...activeRoadmapDraft, levels: normalizeRoadmapLevels(activeRoadmapDraft.levels) });
     if (!result.ok) return { goal: null, error: result.error.message };
     setGoals((current) => [result.data, ...current.filter((goal) => goal.id !== result.data.id)]);
     setActiveRoadmapDraft(null);

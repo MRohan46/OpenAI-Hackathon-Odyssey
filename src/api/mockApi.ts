@@ -13,6 +13,7 @@ import {
 } from '../data/mockData';
 import type { Goal, Quest } from '../types/domain';
 import { toShortTitle } from '../utils/format';
+import { normalizeRoadmapLevels } from '../utils/roadmap';
 import type { ApiResult, OdysseyApi, ProofAttachment, ReminderPreferences } from './contracts';
 
 const delay = (milliseconds = 280) => new Promise((resolve) => setTimeout(resolve, milliseconds));
@@ -104,7 +105,7 @@ export const mockApi: OdysseyApi = {
         status: 'active',
         bossName: 'The Final Shore',
         bossHealth: 100,
-        roadmap: input.levels,
+        roadmap: normalizeRoadmapLevels(input.levels),
         startingPoint: input.startingPoint,
         availableDays: input.availableDays,
         minutesPerDay: input.minutesPerDay,
@@ -118,7 +119,7 @@ export const mockApi: OdysseyApi = {
       await delay(180);
       const index = goals.findIndex((item) => item.id === goalId);
       if (index < 0) return missing('Odyssey');
-      goals[index] = { ...goals[index], ...input };
+      goals[index] = { ...goals[index], ...input, roadmap: input.roadmap ? normalizeRoadmapLevels(input.roadmap) : goals[index].roadmap };
       return success(goals[index]);
     },
   },

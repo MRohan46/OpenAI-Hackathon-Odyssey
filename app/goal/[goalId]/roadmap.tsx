@@ -12,6 +12,7 @@ import { Surface } from '../../../src/components/Surface';
 import { Typography } from '../../../src/components/Typography';
 import { useApp } from '../../../src/state/AppProvider';
 import type { RoadmapLevel } from '../../../src/types/domain';
+import { normalizeRoadmapLevels } from '../../../src/utils/roadmap';
 import { colors, spacing } from '../../../src/theme/tokens';
 
 export default function EditAcceptedRoadmapScreen() {
@@ -29,9 +30,10 @@ export default function EditAcceptedRoadmapScreen() {
     const source = current.findIndex((level) => level.id === levelId);
     const target = source + direction;
     if (source < 0 || target < 0 || target >= current.length) return current;
+    if (current[source].status === 'completed' || current[target].status === 'completed') return current;
     const next = [...current];
     [next[source], next[target]] = [next[target], next[source]];
-    return next.map((level, index) => ({ ...level, number: index + 1 }));
+    return normalizeRoadmapLevels(next);
   });
   const regenerate = (levelId: string) => {
     const source = levels.find((level) => level.id === levelId);
