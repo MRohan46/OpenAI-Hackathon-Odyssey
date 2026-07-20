@@ -151,8 +151,29 @@ export const mockApi: OdysseyApi = {
       await delay(180);
       const index = quests.findIndex((item) => item.id === questId);
       if (index < 0) return missing('Quest');
-      quests[index] = { ...quests[index], ...input };
-      return success(quests[index]);
+      const source = quests[index];
+      const { seriesScope, ...patch } = input;
+      if (seriesScope && source.seriesId) {
+        const sourceTime = new Date(source.scheduledAt).getTime();
+        const nextTime = patch.scheduledAt ? new Date(patch.scheduledAt).getTime() : sourceTime;
+        const sourceDeadline = source.deadlineAt ? new Date(source.deadlineAt).getTime() : undefined;
+        const nextDeadline = patch.deadlineAt ? new Date(patch.deadlineAt).getTime() : sourceDeadline;
+        quests = quests.map((item) => {
+          if (item.seriesId !== source.seriesId || item.status === 'completed' || item.status === 'missed') return item;
+          const offset = new Date(item.scheduledAt).getTime() - sourceTime;
+          return {
+            ...item,
+            ...patch,
+            scheduledAt: new Date(nextTime + offset).toISOString(),
+            deadlineAt: nextDeadline === undefined ? undefined : new Date(nextDeadline + offset).toISOString(),
+          };
+        });
+      } else {
+        quests[index] = { ...source, ...patch };
+      }
+      const updated = quests.find((item) => item.id === questId);
+      if (!updated) return missing('Quest');
+      return success(updated);
     },
     async remove(questId) {
       await delay(150);

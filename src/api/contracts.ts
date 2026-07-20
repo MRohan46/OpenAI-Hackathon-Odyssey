@@ -39,6 +39,8 @@ export interface CompletionReceipt {
   bossHealth: number;
 }
 
+export type QuestUpdateInput = Partial<Quest> & { seriesScope?: boolean };
+
 export interface ChestReceipt {
   chestId: string;
   xp: number;
@@ -104,7 +106,7 @@ export interface OdysseyApi {
     list(): Promise<ApiResult<Quest[]>>;
     get(questId: string): Promise<ApiResult<Quest>>;
     create(input: Omit<Quest, 'id'>): Promise<ApiResult<Quest>>;
-    update(questId: string, input: Partial<Quest>): Promise<ApiResult<Quest>>;
+    update(questId: string, input: QuestUpdateInput): Promise<ApiResult<Quest>>;
     remove(questId: string): Promise<ApiResult<null>>;
     complete(questId: string, input: CompletionInput): Promise<ApiResult<CompletionReceipt>>;
   };

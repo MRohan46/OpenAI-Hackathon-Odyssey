@@ -30,6 +30,7 @@ import type {
   UserProfile,
 } from '../types/domain';
 import { supabase, SUPABASE_CONFIGURATION_ERROR } from '../lib/supabase';
+import { buildDeviceReminders } from '../utils/deviceReminders';
 
 const PREFERENCES_KEY = 'odyssey.preferences.v1';
 const PRESENTATION_SESSION_KEY = 'odyssey.presentation-session.v1';
@@ -50,6 +51,14 @@ const setPresentationSession = (active: boolean) => {
     else sessionStorage.removeItem(PRESENTATION_SESSION_KEY);
   } catch {
     // A blocked storage API must not prevent the in-memory presentation session.
+  }
+};
+
+const deviceTimeZone = () => {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+  } catch {
+    return 'UTC';
   }
 };
 
@@ -165,8 +174,10 @@ export function AppProvider({ children }: React.PropsWithChildren) {
   const [chestState, setChestState] = useState<AsyncActionState>('idle');
   const [chestReceipt, setChestReceipt] = useState<ChestReceipt | null>(null);
   const completionMutation = useRef(0);
+  const chestMutation = useRef(0);
   const preferencesLoaded = useRef(false);
   const accountHydrationVersion = useRef(0);
+  const reminderSync = useRef<Promise<void>>(Promise.resolve());
   const activeApi = presentationMode ? mockApi : odysseyApi;
 
   const resetAccountData = useCallback(() => {
@@ -179,11 +190,15 @@ export function AppProvider({ children }: React.PropsWithChildren) {
   }, []);
 
   const hydrateAccountData = useCallback(async (version: number) => {
-    const [profileResult, goalsResult, questsResult, rewardsResult, ledgerResult, notificationsResult, preferencesResult] = await Promise.all([
-      odysseyApi.profile.get(), odysseyApi.goals.list(), odysseyApi.quests.list(), odysseyApi.rewards.get(), odysseyApi.rewards.ledger(), odysseyApi.notifications.list(), odysseyApi.notifications.getReminderPreferences(),
+    // The profile RPC also runs server maintenance. Await it before reading the
+    // dependent rows so recurrence, overdue state, reminders, and streak agree.
+    const profileResult = await odysseyApi.profile.get();
+    if (version !== accountHydrationVersion.current || !profileResult.ok) return false;
+    const [goalsResult, questsResult, rewardsResult, ledgerResult, notificationsResult, preferencesResult] = await Promise.all([
+      odysseyApi.goals.list(), odysseyApi.quests.list(), odysseyApi.rewards.get(), odysseyApi.rewards.ledger(), odysseyApi.notifications.list(), odysseyApi.notifications.getReminderPreferences(),
     ]);
     if (version !== accountHydrationVersion.current) return false;
-    if (!profileResult.ok || !goalsResult.ok || !questsResult.ok || !rewardsResult.ok || !ledgerResult.ok || !notificationsResult.ok || !preferencesResult.ok) return false;
+    if (!goalsResult.ok || !questsResult.ok || !rewardsResult.ok || !ledgerResult.ok || !notificationsResult.ok || !preferencesResult.ok) return false;
     setProfile(profileResult.data);
     setGoals(goalsResult.data);
     setQuests(questsResult.data);
@@ -193,6 +208,57 @@ export function AppProvider({ children }: React.PropsWithChildren) {
     setPreferences((current) => ({ ...current, ...preferencesResult.data }));
     return true;
   }, []);
+
+  useEffect(() => {
+    if (Platform.OS === 'web') return;
+    const reminders = buildDeviceReminders(quests, preferences);
+    reminderSync.current = reminderSync.current
+      .then(async () => {
+        const notificationsApi = await import('expo-notifications');
+        const scheduled = await notificationsApi.getAllScheduledNotificationsAsync();
+        const odysseyScheduled = scheduled.filter(
+          (item) => item.content.data?.odysseyReminder === true,
+        );
+        await Promise.all(odysseyScheduled.map((item) => notificationsApi.cancelScheduledNotificationAsync(item.identifier)));
+        if (!signedIn || presentationMode) return;
+        const permission = await notificationsApi.getPermissionsAsync();
+        if (!permission.granted) return;
+        if (Platform.OS === 'android') {
+          await notificationsApi.setNotificationChannelAsync('odyssey-reminders', {
+            name: 'Odyssey reminders',
+            importance: notificationsApi.AndroidImportance.DEFAULT,
+          });
+        }
+        notificationsApi.setNotificationHandler({
+          handleNotification: async () => ({
+            shouldShowBanner: true,
+            shouldShowList: true,
+            shouldPlaySound: false,
+            shouldSetBadge: false,
+          }),
+        });
+        for (const reminder of reminders) {
+          await notificationsApi.scheduleNotificationAsync({
+            content: {
+              title: reminder.title,
+              body: reminder.body,
+              data: {
+                odysseyReminder: true,
+                questId: reminder.questId,
+                route: reminder.route,
+                kind: reminder.kind,
+              },
+            },
+            trigger: {
+              type: notificationsApi.SchedulableTriggerInputTypes.DATE,
+              date: reminder.date,
+              ...(Platform.OS === 'android' ? { channelId: 'odyssey-reminders' } : {}),
+            },
+          });
+        }
+      })
+      .catch(() => undefined);
+  }, [preferences, presentationMode, quests, signedIn]);
 
   const applyAuthSession = useCallback((session: Awaited<ReturnType<NonNullable<typeof supabase>['auth']['getSession']>>['data']['session']) => {
     const version = ++accountHydrationVersion.current;
@@ -358,6 +424,8 @@ export function AppProvider({ children }: React.PropsWithChildren) {
 
   const signOut = useCallback(async () => {
     ++accountHydrationVersion.current;
+    ++completionMutation.current;
+    ++chestMutation.current;
     try {
       // A local sign-out clears this device immediately and does not leave the
       // traveler trapped in the app when a remote network request is unavailable.
@@ -371,6 +439,11 @@ export function AppProvider({ children }: React.PropsWithChildren) {
       resetAccountData();
       setActiveRoadmapDraft(null);
       setActiveProofUri(null);
+      setCompletionState('idle');
+      setCompletionReceipt(null);
+      setCompletionError(null);
+      setChestState('idle');
+      setChestReceipt(null);
     }
   }, [resetAccountData]);
 
@@ -468,6 +541,7 @@ export function AppProvider({ children }: React.PropsWithChildren) {
     const result = await activeApi.quests.create({
       ...input,
       seriesId: input.kind === 'habit' ? `series-${Date.now()}` : undefined,
+      timeZone: deviceTimeZone(),
       status: 'scheduled',
       rewardXp: input.priority === 'critical' ? 120 : input.priority === 'high' ? 90 : 45,
       rewardRubies: input.priority === 'critical' ? 16 : input.priority === 'high' ? 12 : 6,
@@ -489,12 +563,11 @@ export function AppProvider({ children }: React.PropsWithChildren) {
   const updateQuestSeries = useCallback(async (questId: string, input: Partial<Quest>) => {
     const source = quests.find((quest) => quest.id === questId);
     if (!source?.seriesId) return updateQuest(questId, input);
-    const editable = quests.filter((quest) => quest.seriesId === source.seriesId && quest.status !== 'completed' && quest.status !== 'missed');
-    const results = await Promise.all(editable.map((quest) => activeApi.quests.update(quest.id, input)));
-    const failure = results.find((result) => !result.ok);
-    if (failure && !failure.ok) return failure.error.message;
-    const updated = new Map(results.filter((result) => result.ok).map((result) => [result.data.id, result.data]));
-    setQuests((current) => current.map((quest) => updated.get(quest.id) ?? quest));
+    const result = await activeApi.quests.update(questId, { ...input, seriesScope: true });
+    if (!result.ok) return result.error.message;
+    const refreshed = await activeApi.quests.list();
+    if (!refreshed.ok) return refreshed.error.message;
+    setQuests(refreshed.data);
     return null;
   }, [activeApi, quests, updateQuest]);
 
@@ -508,6 +581,7 @@ export function AppProvider({ children }: React.PropsWithChildren) {
   const completeQuest = useCallback(
     async (questId: string, actualIntensity: Intensity, proofUri?: string) => {
       const mutation = ++completionMutation.current;
+      const accountVersion = accountHydrationVersion.current;
       setCompletionState('pending');
       setCompletionReceipt(null);
       setCompletionError(null);
@@ -519,7 +593,7 @@ export function AppProvider({ children }: React.PropsWithChildren) {
         proofUri,
         clientMutationId: `complete-${questId}-${mutation}`,
       });
-      if (mutation !== completionMutation.current) return false;
+      if (mutation !== completionMutation.current || accountVersion !== accountHydrationVersion.current) return false;
       if (!result.ok) {
         setQuests((current) =>
           current.map((quest) => (quest.id === questId ? { ...quest, status: 'scheduled' } : quest)),
@@ -528,29 +602,35 @@ export function AppProvider({ children }: React.PropsWithChildren) {
         setCompletionState('failed');
         return false;
       }
-      setQuests((current) => current.map((quest) => (quest.id === questId ? result.data.quest : quest)));
-      setGoals((current) =>
-        current.map((goal) =>
-          goal.id === result.data.quest.goalId ? { ...goal, bossHealth: result.data.bossHealth } : goal,
-        ),
-      );
-      setProfile((current) => ({ ...current, xp: current.xp + result.data.rewards.xp }));
-      setRewards((current) => ({ ...current, rubies: current.rubies + result.data.rewards.rubies }));
-      setRewardLedger((current) => [{
-        id: `ledger-${Date.now()}`,
-        createdAt: result.data.quest.completedAt ?? new Date().toISOString(),
-        kind: 'quest',
-        title: `${result.data.quest.title} completed`,
-        xp: result.data.rewards.xp,
-        rubies: result.data.rewards.rubies,
-      }, ...current]);
+      const hydrated = usingSupabaseData && !presentationMode
+        ? await hydrateAccountData(accountVersion)
+        : false;
+      if (mutation !== completionMutation.current || accountVersion !== accountHydrationVersion.current) return false;
+      if (!hydrated) {
+        setQuests((current) => current.map((quest) => (quest.id === questId ? result.data.quest : quest)));
+        setGoals((current) =>
+          current.map((goal) =>
+            goal.id === result.data.quest.goalId ? { ...goal, bossHealth: result.data.bossHealth } : goal,
+          ),
+        );
+        setProfile((current) => ({ ...current, xp: current.xp + result.data.rewards.xp }));
+        setRewards((current) => ({ ...current, rubies: current.rubies + result.data.rewards.rubies }));
+        setRewardLedger((current) => [{
+          id: `ledger-${Date.now()}`,
+          createdAt: result.data.quest.completedAt ?? new Date().toISOString(),
+          kind: 'quest',
+          title: `${result.data.quest.title} completed`,
+          xp: result.data.rewards.xp,
+          rubies: result.data.rewards.rubies,
+        }, ...current]);
+      }
       setCompletionReceipt(result.data);
       setCompletionState('confirmed');
       setActiveProofUri(null);
       await haptic('success');
       return true;
     },
-    [activeApi, haptic],
+    [activeApi, haptic, hydrateAccountData, presentationMode],
   );
 
   const resetCompletion = useCallback(() => {
@@ -584,25 +664,34 @@ export function AppProvider({ children }: React.PropsWithChildren) {
   }, [activeApi, rewards.cosmetics]);
 
   const openChest = useCallback(async (chestId: string) => {
+    const mutation = ++chestMutation.current;
+    const accountVersion = accountHydrationVersion.current;
     setChestState('pending');
     setChestReceipt(null);
     const result = await activeApi.rewards.openChest(chestId);
+    if (mutation !== chestMutation.current || accountVersion !== accountHydrationVersion.current) return false;
     if (!result.ok) {
       setChestState('failed');
       return false;
     }
     setChestReceipt(result.data);
     setChestState('confirmed');
-    setRewards((current) => ({
-      ...current,
-      unopenedChests: Math.max(0, current.unopenedChests - 1),
-      rubies: current.rubies + result.data.rubies,
-    }));
-    setProfile((current) => ({ ...current, xp: current.xp + result.data.xp }));
-    setRewardLedger((current) => [{ id: `ledger-${Date.now()}`, createdAt: new Date().toISOString(), kind: 'chest', title: 'Earned chest opened', xp: result.data.xp, rubies: result.data.rubies }, ...current]);
+    const hydrated = usingSupabaseData && !presentationMode
+      ? await hydrateAccountData(accountVersion)
+      : false;
+    if (mutation !== chestMutation.current || accountVersion !== accountHydrationVersion.current) return false;
+    if (!hydrated) {
+      setRewards((current) => ({
+        ...current,
+        unopenedChests: Math.max(0, current.unopenedChests - 1),
+        rubies: current.rubies + result.data.rubies,
+      }));
+      setProfile((current) => ({ ...current, xp: current.xp + result.data.xp }));
+      setRewardLedger((current) => [{ id: `ledger-${Date.now()}`, createdAt: new Date().toISOString(), kind: 'chest', title: 'Earned chest opened', xp: result.data.xp, rubies: result.data.rubies }, ...current]);
+    }
     await haptic('success');
     return true;
-  }, [activeApi, haptic]);
+  }, [activeApi, haptic, hydrateAccountData, presentationMode]);
 
   const applyBoost = useCallback(async (boostId: string) => {
     const result = await activeApi.rewards.applyBoost(boostId);

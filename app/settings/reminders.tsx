@@ -29,13 +29,14 @@ export default function ReminderSettingsScreen() {
     const notifications = await import('expo-notifications');
     const result = await notifications.requestPermissionsAsync();
     setPermission(result.granted ? 'allowed' : 'denied');
+    if (result.granted) await updatePreferences({ questReminders: preferences.questReminders });
   };
   return (
     <LivingScreen dim={0.26}>
       <ScreenHeader back title="Reminders" eyebrow="Clear timing" />
       <Surface tone={permission === 'denied' ? 'sand' : 'ink'} padding="large" style={styles.permission}>
         <View style={[styles.icon, { backgroundColor: permission === 'allowed' ? 'rgba(24,184,200,0.18)' : 'rgba(255,113,91,0.14)' }]}>{permission === 'denied' ? <BellOff size={23} color={colors.coral} /> : <Bell size={23} color={permission === 'allowed' ? colors.water : colors.sun} />}</View>
-        <View style={styles.copy}><Typography variant="heading" color={permission === 'denied' ? colors.ink : colors.white}>{permission === 'allowed' ? 'Device reminders allowed' : permission === 'denied' ? 'Device reminders denied' : 'Permission not decided'}</Typography><Typography variant="body" color={permission === 'denied' ? colors.inkSecondary : 'rgba(255,255,255,0.72)'}>{permission === 'allowed' ? 'Odyssey may present teammate-backed scheduled reminders.' : 'In-app tide notes still work. Device delivery requires OS permission and backend scheduling.'}</Typography></View>
+        <View style={styles.copy}><Typography variant="heading" color={permission === 'denied' ? colors.ink : colors.white}>{permission === 'allowed' ? 'Device reminders allowed' : permission === 'denied' ? 'Device reminders denied' : 'Permission not decided'}</Typography><Typography variant="body" color={permission === 'denied' ? colors.inkSecondary : 'rgba(255,255,255,0.72)'}>{permission === 'allowed' ? 'Odyssey schedules reminders for this device and keeps in-app reminders current.' : 'In-app tide notes still work. Device delivery requires OS permission.'}</Typography></View>
         {permission === 'unknown' ? <Button label="Allow device reminders" variant="secondary" onPress={ask} /> : null}
       </Surface>
       <Surface padding="large" style={styles.switches}>
@@ -47,7 +48,7 @@ export default function ReminderSettingsScreen() {
         <View style={styles.label}><Clock3 size={20} color={colors.waterDeep} /><Typography variant="heading">Lead time</Typography></View>
         <ChoiceGroup label="Before scheduled quests" value={String(preferences.reminderLeadMinutes)} options={['5', '15', '30', '60'] as const} labels={{ '5': '5 min', '15': '15 min', '30': '30 min', '60': '1 hour' }} onChange={(value) => updatePreferences({ reminderLeadMinutes: Number(value) })} />
       </Surface>
-      <Typography variant="micro" color={colors.inkSecondary}>This frontend stores presentation preferences and exposes the notification endpoint contract. It does not schedule teammate-owned backend jobs.</Typography>
+      <Typography variant="micro" color={colors.inkSecondary}>Upcoming device reminders are rebuilt from your private quest schedule whenever it changes. In-app reminders continue even while this app is closed.</Typography>
     </LivingScreen>
   );
 }

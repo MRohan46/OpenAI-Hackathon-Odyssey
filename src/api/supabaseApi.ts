@@ -1,7 +1,8 @@
-import type { Intensity, Goal, GoalAnalytics, HabitAnalytics, NotificationItem, OverallAnalytics, Quest, RewardInventory, RewardLedgerEntry, RoadmapLevel, UserProfile, AppPreferences, RoadmapDraft } from '../types/domain';
+import type { Intensity, Goal, GoalAnalytics, NotificationItem, OverallAnalytics, Quest, RewardInventory, RewardLedgerEntry, RoadmapLevel, UserProfile, AppPreferences, RoadmapDraft } from '../types/domain';
 import { isSupabaseConfigured, supabase } from '../lib/supabase';
 import type { ApiResult, ChestReceipt, CompletionInput, OdysseyApi, PrivateProofUrl, ProofAttachment, ProofAttachmentInput, ProofUploadInput, ProofUploadTarget, ReminderPreferences, Session } from './contracts';
 import { RequestTimeoutError, withTimeout } from './withTimeout';
+import { buildHabitAnalytics } from '../utils/analytics';
 
 type Row = Record<string, any>;
 const requestId = () => globalThis.crypto?.randomUUID?.() ?? `supabase-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -28,7 +29,7 @@ function goalFrom(row: Row): Goal {
 }
 
 function questFrom(row: Row): Quest {
-  return { id: row.id, goalId: row.goal_id, title: row.title, description: row.description, kind: row.kind, status: row.status, scheduledAt: row.scheduled_at, deadlineAt: row.deadline_at ?? undefined, durationMinutes: row.duration_minutes, priority: row.priority, plannedIntensity: row.planned_intensity, actualIntensity: row.actual_intensity ?? undefined, recurrence: row.recurrence ?? undefined, proofPolicy: row.proof_policy, proofUri: row.proof_object_key ?? undefined, rewardXp: row.reward_xp, rewardRubies: row.reward_rubies, bossDamage: row.boss_damage, completedAt: row.completed_at ?? undefined, seriesId: row.series_id ?? undefined, streakProtected: row.streak_protected };
+  return { id: row.id, goalId: row.goal_id, title: row.title, description: row.description, kind: row.kind, status: row.status, scheduledAt: row.scheduled_at, deadlineAt: row.deadline_at ?? undefined, durationMinutes: row.duration_minutes, priority: row.priority, plannedIntensity: row.planned_intensity, actualIntensity: row.actual_intensity ?? undefined, recurrence: row.recurrence ?? undefined, proofPolicy: row.proof_policy, proofUri: row.proof_object_key ?? undefined, rewardXp: row.reward_xp, rewardRubies: row.reward_rubies, bossDamage: row.boss_damage, completedAt: row.completed_at ?? undefined, seriesId: row.series_id ?? undefined, timeZone: row.time_zone ?? undefined, streakProtected: row.streak_protected };
 }
 
 function rewardsFrom(row: Row): RewardInventory {
@@ -90,8 +91,13 @@ export const supabaseApi: OdysseyApi = {
   },
   profile: {
     async get() {
-      const result = await rpc<Row>('odyssey_ensure_profile');
-      return result.ok ? success(profileFrom(result.data)) : result;
+      const ensured = await rpc<Row>('odyssey_ensure_profile');
+      if (!ensured.ok) return ensured;
+      const refreshed = await rpc<null>('odyssey_refresh_account_state');
+      if (!refreshed.ok) return refreshed;
+      if (!supabase) return failed('Supabase is not configured.');
+      const { data, error } = await supabase.from('profiles').select('*').single();
+      return error ? apiError(error, 'Odyssey could not load your profile.') : success(profileFrom(data));
     },
     async updatePreferences(input) {
       if (!supabase) return failed('Supabase is not configured.');
@@ -170,7 +176,7 @@ export const supabaseApi: OdysseyApi = {
   },
   analytics: {
     async overall(period) { const list = await supabaseApi.quests.list(); if (!list.ok) return list; const now = new Date(); const range = period === 'week' ? 7 : 30; const start = new Date(now); start.setDate(start.getDate() - range + 1); const relevant = list.data.filter((quest) => new Date(quest.scheduledAt) >= start); const completed = relevant.filter((quest) => quest.status === 'completed'); const intensity = { light: 0, normal: 0, intense: 0 }; completed.forEach((quest) => { intensity[(quest.actualIntensity ?? quest.plannedIntensity) as Intensity] += 1; }); const daily = Array.from({ length: period === 'week' ? 7 : 30 }, (_, index) => { const date = new Date(start); date.setDate(start.getDate() + index); const key = date.toDateString(); const assigned = relevant.filter((quest) => new Date(quest.scheduledAt).toDateString() === key); const complete = assigned.filter((quest) => quest.status === 'completed').length; return { label: period === 'week' ? date.toLocaleDateString(undefined, { weekday: 'short' }) : String(date.getDate()), value: assigned.length ? Math.round((complete / assigned.length) * 100) : 0 }; }); const total = relevant.length; return success<OverallAnalytics>({ period, questsCompleted: completed.length, completionRate: total ? Math.round((completed.length / total) * 100) : 0, consistency: total ? Math.round((completed.length / total) * 100) : 0, xpEarned: completed.reduce((sum, quest) => sum + quest.rewardXp, 0), rubiesEarned: completed.reduce((sum, quest) => sum + quest.rewardRubies, 0), intensity, daily }); },
-    async habit(habitId) { const list = await supabaseApi.quests.list(); if (!list.ok) return list; const quests = list.data.filter((quest) => quest.id === habitId || quest.seriesId === habitId); const completed = quests.filter((quest) => quest.status === 'completed'); const intensity = { light: 0, normal: 0, intense: 0 }; completed.forEach((quest) => { intensity[(quest.actualIntensity ?? quest.plannedIntensity) as Intensity] += 1; }); return success<HabitAnalytics>({ habitId, currentStreak: 0, longestStreak: 0, scheduled: quests.length, completed: completed.length, missed: quests.filter((quest) => quest.status === 'missed').length, intensity, weekly: [] }); },
+    async habit(habitId) { const list = await supabaseApi.quests.list(); if (!list.ok) return list; const quest = list.data.find((item) => item.id === habitId); return quest ? success(buildHabitAnalytics(quest, list.data)) : failed('Habit not found.', 'not_found'); },
     async goal(goalId) { const [goal, quests] = await Promise.all([supabaseApi.goals.get(goalId), supabaseApi.quests.list()]); if (!goal.ok) return goal; if (!quests.ok) return quests; const connected = quests.data.filter((quest) => quest.goalId === goalId); const complete = connected.filter((quest) => quest.status === 'completed').length; const elapsed = Math.max(0, Date.now() - new Date(goal.data.deadline).setHours(0, 0, 0, 0)); return success<GoalAnalytics>({ goalId, roadmapProgress: goal.data.progress, completedStages: goal.data.roadmap.filter((level) => level.status === 'completed').length, connectedQuestCompletion: connected.length ? Math.round((complete / connected.length) * 100) : 0, bossHealth: goal.data.bossHealth, deadlineProgress: elapsed ? 100 : 0 }); },
   },
   notifications: {

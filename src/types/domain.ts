@@ -44,6 +44,7 @@ export interface Quest {
   bossDamage: number;
   completedAt?: string;
   seriesId?: string;
+  timeZone?: string;
   streakProtected?: boolean;
 }
 

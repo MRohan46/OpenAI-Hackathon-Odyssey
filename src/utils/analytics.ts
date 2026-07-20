@@ -46,6 +46,19 @@ export function buildHabitAnalytics(quest: Quest, quests: Quest[]): HabitAnalyti
   const series = quests.filter((item) => item.id === quest.id || (quest.seriesId && item.seriesId === quest.seriesId));
   const completed = series.filter((item) => item.status === 'completed');
   const missed = series.filter((item) => item.status === 'missed');
+  const decided = series
+    .filter((item) => item.status === 'completed' || item.status === 'missed' || item.status === 'overdue')
+    .sort((left, right) => parseISO(left.scheduledAt).getTime() - parseISO(right.scheduledAt).getTime());
+  let runningStreak = 0;
+  let longestStreak = 0;
+  decided.forEach((item) => {
+    if (item.status === 'completed') {
+      runningStreak += 1;
+      longestStreak = Math.max(longestStreak, runningStreak);
+    } else if (!item.streakProtected) {
+      runningStreak = 0;
+    }
+  });
   const intensity = zeroIntensity();
   completed.forEach((item) => { if (item.actualIntensity) intensity[item.actualIntensity] += 1; });
   const weekly = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day) => {
@@ -58,8 +71,8 @@ export function buildHabitAnalytics(quest: Quest, quests: Quest[]): HabitAnalyti
   });
   return {
     habitId: quest.id,
-    currentStreak: completed.length,
-    longestStreak: Math.max(completed.length, 1),
+    currentStreak: runningStreak,
+    longestStreak,
     scheduled: series.length,
     completed: completed.length,
     missed: missed.length,

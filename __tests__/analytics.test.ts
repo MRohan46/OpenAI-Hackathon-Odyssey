@@ -34,7 +34,21 @@ describe('derived analytics', () => {
     const goalModel = buildGoalAnalytics(goal, quests, now);
     expect(habit.completed).toBe(2);
     expect(habit.missed).toBe(1);
+    expect(habit.currentStreak).toBe(1);
+    expect(habit.longestStreak).toBe(1);
     expect(goalModel.completedStages).toBe(1);
     expect(goalModel.connectedQuestCompletion).toBe(67);
+  });
+
+  it('keeps protected misses without inflating the streak', () => {
+    const protectedMiss = { ...quest('protected', '2026-07-17T09:00:00Z', 'missed'), streakProtected: true };
+    const habit = buildHabitAnalytics(quests[0], [
+      quest('first', '2026-07-16T09:00:00Z', 'completed'),
+      protectedMiss,
+      quest('latest', '2026-07-18T09:00:00Z', 'completed'),
+    ]);
+    expect(habit.currentStreak).toBe(2);
+    expect(habit.longestStreak).toBe(2);
+    expect(habit.completed).toBe(2);
   });
 });
