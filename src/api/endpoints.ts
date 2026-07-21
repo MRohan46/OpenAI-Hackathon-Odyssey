@@ -2,7 +2,8 @@
  * Replace only the adapter, not screen code, when the teammate-owned backend is ready.
  * No provider URL or secret is embedded in the mobile client.
  */
-export const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL?.replace(/\/$/, '') ?? '';
+// Public endpoint; safe to ship in the mobile bundle. Override for previews with EXPO_PUBLIC_API_BASE_URL.
+export const API_BASE_URL = (process.env.EXPO_PUBLIC_API_BASE_URL ?? 'https://dist-arjun-science-projects.vercel.app/api').replace(/\/$/, '');
 
 export const endpoints = {
   auth: {
