@@ -82,4 +82,30 @@ For the complete product description, read [docs/PRODUCT.md](docs/PRODUCT.md).
 
 Configured builds use Supabase as the source of truth for goals, quests, completions, rewards, private proof, notifications, and preferences. The complete migration, RLS, Edge Function, secure Groq setup, and deployment steps are in [docs/SUPABASE_PRODUCTION_IMPLEMENTATION.md](docs/SUPABASE_PRODUCTION_IMPLEMENTATION.md).
 
-Never add a Groq secret as an `EXPO_PUBLIC_*` value: Expo embeds those values in the mobile/web client. Store `GROQ_API_KEY` and `GROQ_MODEL` as Supabase Edge Function secrets.
+## Usage of Codex
+We used Codex extensively throughout the development of our project, with GPT-5.6 playing a central role in both the technical implementation and the creative development process.
+
+Codex helped us build the full application, including the core architecture, backend logic, frontend components, integrations, error handling, and testing workflows. We used it for complex coding tasks that required understanding relationships across multiple files rather than generating isolated snippets. It assisted with implementing features, debugging failures, restructuring code, resolving dependency issues, improving performance, and ensuring that new functionality remained consistent with the existing codebase.
+
+A major area where Codex contributed was the creation of our interactive user interface. We used it to translate our product ideas into functional UI components, design responsive layouts, implement interactive states, refine animations, and improve the overall user experience. Instead of relying on static templates, we worked iteratively with Codex to explore creative interface concepts, test different interaction patterns, and turn those ideas into production-ready code.
+
+Our workflow with Codex was highly collaborative and iterative. We provided detailed requirements, screenshots, architectural context, expected behaviours, and constraints. Codex then helped us break large features into smaller implementation steps, generate the necessary code, inspect related files, identify potential problems, and revise the implementation based on testing and feedback.
+
+We also used Codex to investigate bugs across the application. It analysed error messages, traced issues through different parts of the system, suggested likely root causes, and implemented targeted fixes. For more complex tasks, it helped us reason about trade-offs between different approaches before selecting an implementation.
+
+Beyond writing code, Codex supported our broader engineering workflow by helping us:
+
+* Plan and structure complex features
+* Generate and refactor frontend and backend code
+* Create reusable UI components
+* Implement responsive and interactive behaviour
+* Debug runtime, integration, and build errors
+* Improve code quality and maintainability
+* Write tests and validation logic
+* Review edge cases and failure scenarios
+* Document technical decisions and application behaviour
+* Rapidly prototype alternative solutions before final implementation
+
+We did not use Codex as a one-click project generator. Instead, we treated it as an active development partner. We continuously reviewed its output, tested the code, refined prompts, supplied additional context, and made final technical and product decisions ourselves.
+
+This workflow allowed us to move quickly without sacrificing creativity or technical depth. Codex gave us the ability to experiment with ambitious ideas, build a polished interactive experience, and handle complex engineering tasks within the limited timeframe of the hackathon.
