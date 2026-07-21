@@ -111,4 +111,4 @@ We did not use Codex as a one-click project generator. Instead, we treated it as
 
 This workflow allowed us to move quickly without sacrificing creativity or technical depth. Codex gave us the ability to experiment with ambitious ideas, build a polished interactive experience, and handle complex engineering tasks within the limited timeframe of the hackathon.
 
-Never add a Groq secret as an `EXPO_PUBLIC_*` value: Expo embeds those values in the mobile/web client. Store `GROQ_API_KEY` and `GROQ_MODEL` only in Vercel environment variables.
+APK Link: https://drive.google.com/file/d/1SqtAEGkRww572so_wmJjL3MKV9mkU2xW/view?usp=drive_link
