@@ -109,4 +109,6 @@ Beyond writing code, Codex supported our broader engineering workflow by helping
 
 We did not use Codex as a one-click project generator. Instead, we treated it as an active development partner. We continuously reviewed its output, tested the code, refined prompts, supplied additional context, and made final technical and product decisions ourselves.
 
+This workflow allowed us to move quickly without sacrificing creativity or technical depth. Codex gave us the ability to experiment with ambitious ideas, build a polished interactive experience, and handle complex engineering tasks within the limited timeframe of the hackathon.
+
 Never add a Groq secret as an `EXPO_PUBLIC_*` value: Expo embeds those values in the mobile/web client. Store `GROQ_API_KEY` and `GROQ_MODEL` only in Vercel environment variables.
