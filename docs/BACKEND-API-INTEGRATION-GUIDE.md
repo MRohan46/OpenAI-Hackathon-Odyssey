@@ -1,6 +1,6 @@
 # Odyssey Backend API Integration Guide
 
-**Status:** implementation handoff
+**Status:** reference contract; the production app currently implements only the secret-dependent roadmap-generation route on Vercel and uses Supabase RLS/RPCs for product data
 **API version:** `/v1`
 **Frontend snapshot:** `main` at `0c75af7`
 **Reviewed:** 2026-07-18
@@ -1598,7 +1598,7 @@ Do not add `/refresh`, `/password-reset`, `/devices`, `/goals/:id/archive`, or p
 ## Expo client
 
 ```dotenv
-EXPO_PUBLIC_API_BASE_URL=https://api.example.com
+EXPO_PUBLIC_API_BASE_URL=https://your-vercel-project.vercel.app/api
 ```
 
 This is public configuration. Never put service-role, Groq, JWT signing, or database secrets in any `EXPO_PUBLIC_*` value.

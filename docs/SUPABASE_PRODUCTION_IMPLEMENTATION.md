@@ -26,44 +26,29 @@ Proof images are stored in a private bucket under this exact path shape:
 
 The storage policies prevent another authenticated user from listing, reading, uploading, replacing, or deleting a different user's proof. The app creates a short-lived signed URL only when reading a private proof.
 
-## Required one-time Supabase setup
+## Required one-time setup
 
 1. Install the Supabase CLI and authenticate it with the intended project.
 2. Link this repository to that project: `supabase link --project-ref <project-ref>`.
 3. Apply the schema/RLS migration: `supabase db push`.
-4. Set Edge Function secrets. Do **not** put the Groq secret in Expo client variables:
-
-   ```powershell
-   supabase secrets set GROQ_API_KEY="your-groq-secret" GROQ_MODEL="your-groq-model"
-   ```
-
-5. Deploy the JWT-protected roadmap function:
-
-   ```powershell
-   supabase functions deploy generate-roadmap
-   ```
-
-6. Restart Expo after confirming the app has only these public Supabase variables:
+4. Configure `GROQ_API_KEY`, `GROQ_MODEL`, `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, and `ALLOWED_ORIGINS` as Vercel environment variables.
+5. Deploy the Vercel project containing `POST /api/v1/roadmaps/generate`.
+6. Restart Expo after confirming the app has only these public variables:
 
    ```dotenv
    EXPO_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co
    EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
+   EXPO_PUBLIC_API_BASE_URL=https://<vercel-project>.vercel.app/api
    ```
 
-`EXPO_PUBLIC_GROQ_API_KEY` is unsafe and must be removed from the Expo `.env`. Any `EXPO_PUBLIC_*` variable is embedded in the client bundle. The Edge Function reads `GROQ_API_KEY` and `GROQ_MODEL` from its private secret environment instead.
+`EXPO_PUBLIC_GROQ_API_KEY` is unsafe and must be removed from the Expo `.env`. Any `EXPO_PUBLIC_*` variable is embedded in the client bundle. The Vercel Function reads `GROQ_API_KEY` and `GROQ_MODEL` from its private environment instead.
 
-If the Dashboard function was deployed under a different name, configure that non-secret public name in Expo instead of renaming code silently:
-
-```dotenv
-EXPO_PUBLIC_ROADMAP_FUNCTION_NAME=clever-service
-```
-
-The roadmap screen waits up to two minutes; the Edge Function gives Groq up to 110 seconds so it can return a useful `504` error before the client deadline.
+The roadmap screen waits up to two minutes; the Vercel Function gives Groq up to 110 seconds so it can return a useful `504` error before the client deadline.
 
 ## How the app behaves
 
 - On a real Supabase session, `AppProvider` hydrates profile, preferences, goals, quests, reward inventory/history, and notifications from Supabase before the authenticated experience becomes ready.
-- Roadmap generation invokes `generate-roadmap`; the function validates the user JWT, calls Groq server-side, normalizes the response to exactly ten editable levels, and never persists it. Only explicit acceptance calls the database RPC.
+- Roadmap generation calls the Vercel API; the function validates the user's Supabase access token, calls Groq server-side, normalizes the response to exactly ten editable levels, and never persists it. Only explicit acceptance calls the database RPC.
 - Proof completion uploads an image directly to the private bucket first. The transactional completion RPC verifies the uploaded object belongs to the caller, then stores the proof reference, completion, rewards, ledger entry, notification, and boss-health change together.
 - The existing UI can continue to use its typed `odysseyApi` contract; no route needs a mock-specific branch.
 
