@@ -109,3 +109,17 @@ Beyond writing code, Codex supported our broader engineering workflow by helping
 We did not use Codex as a one-click project generator. Instead, we treated it as an active development partner. We continuously reviewed its output, tested the code, refined prompts, supplied additional context, and made final technical and product decisions ourselves.
 
 This workflow allowed us to move quickly without sacrificing creativity or technical depth. Codex gave us the ability to experiment with ambitious ideas, build a polished interactive experience, and handle complex engineering tasks within the limited timeframe of the hackathon.
+
+## Screens / Modules
+
+### Wellcome Screen
+
+![Wellcome Screen](assets/screens/Wellcome%20Screen.png)
+
+### Sign up
+
+![Sign up](assets/screens/Sign%20up.png)
+
+### Privacy and trust
+
+![Privacy and trust](assets/screens/privacy%20and%20trust.png)
