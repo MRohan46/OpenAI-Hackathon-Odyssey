@@ -1,12 +1,11 @@
 import type { Intensity, Goal, GoalAnalytics, NotificationItem, OverallAnalytics, Quest, RewardInventory, RewardLedgerEntry, RoadmapLevel, UserProfile, AppPreferences, RoadmapDraft } from '../types/domain';
 import { isSupabaseConfigured, supabase } from '../lib/supabase';
 import type { ApiResult, ChestReceipt, CompletionInput, OdysseyApi, PrivateProofUrl, ProofAttachment, ProofAttachmentInput, ProofUploadInput, ProofUploadTarget, ReminderPreferences, Session } from './contracts';
-import { RequestTimeoutError, withTimeout } from './withTimeout';
 import { buildHabitAnalytics } from '../utils/analytics';
+import { API_BASE_URL, endpoints } from './endpoints';
 
 type Row = Record<string, any>;
 const requestId = () => globalThis.crypto?.randomUUID?.() ?? `supabase-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-const roadmapFunctionName = process.env.EXPO_PUBLIC_ROADMAP_FUNCTION_NAME?.trim() || 'generate-roadmap';
 const failed = <T>(message: string, code: 'offline' | 'validation' | 'unauthorized' | 'not_found' | 'conflict' | 'server' = 'server'): ApiResult<T> => ({ ok: false, error: { code, message, retryable: code === 'offline' || code === 'server' }, requestId: requestId() });
 const success = <T>(data: T): ApiResult<T> => ({ ok: true, data, requestId: requestId() });
 const apiError = <T>(error: { message: string; code?: string } | null, fallback: string): ApiResult<T> => failed(error?.message ?? fallback, error?.code === 'PGRST116' ? 'not_found' : 'server');
@@ -120,20 +119,30 @@ export const supabaseApi: OdysseyApi = {
   roadmaps: {
     async generate(input) {
       if (!supabase) return failed('Supabase is not configured.');
+      if (!API_BASE_URL) return failed('The roadmap service is not configured.');
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session) return failed('Sign in to generate a roadmap.', 'unauthorized');
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 120_000);
       try {
-        const { data, error } = await withTimeout(
-          supabase.functions.invoke(roadmapFunctionName, { body: roadmapInput(input) }),
-          120_000,
-          `Roadmap generation took more than two minutes. Check that the ${roadmapFunctionName} Edge Function is deployed and has Groq secrets, then try again.`,
-        );
-        return error ? failed(error.message, 'server') : success(data as RoadmapDraft);
+        const response = await fetch(`${API_BASE_URL}${endpoints.roadmapGenerate}`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${sessionData.session.access_token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify(roadmapInput(input)),
+          signal: controller.signal,
+        });
+        const data = await response.json().catch(() => null);
+        if (!response.ok) return failed(data?.message ?? 'Odyssey could not generate a roadmap.', response.status === 401 ? 'unauthorized' : response.status === 422 ? 'validation' : 'server');
+        return success(data as RoadmapDraft);
       } catch (error) {
         return failed(
-          error instanceof RequestTimeoutError
-            ? error.message
+          error instanceof Error && error.name === 'AbortError'
+            ? 'Roadmap generation took more than two minutes. Please try again.'
             : 'Odyssey could not reach the roadmap service. Your goal has not been created.',
           'server',
         );
+      } finally {
+        clearTimeout(timeout);
       }
     },
     async accept(input) { const result = await rpc<Row>('odyssey_accept_roadmap', { p_draft: input }); return result.ok ? supabaseApi.goals.get(result.data.id) : result; },

@@ -48,7 +48,8 @@ Missing a required quest can break a streak and lose that quest's available rewa
 | Mobile application | React Native |
 | Development platform | Expo SDK 57 |
 | Language | TypeScript |
-| Backend and authentication | Supabase |
+| Backend API | Vercel Functions |
+| Database and authentication | Supabase |
 | Photo-proof storage | Supabase Storage |
 | AI roadmap generation | Groq |
 | Reminders | Device notifications and in-app reminders |
@@ -80,7 +81,7 @@ For the complete product description, read [docs/PRODUCT.md](docs/PRODUCT.md).
 
 ## Production data setup
 
-Configured builds use Supabase as the source of truth for goals, quests, completions, rewards, private proof, notifications, and preferences. The complete migration, RLS, Edge Function, secure Groq setup, and deployment steps are in [docs/SUPABASE_PRODUCTION_IMPLEMENTATION.md](docs/SUPABASE_PRODUCTION_IMPLEMENTATION.md).
+Configured builds use Supabase as the source of truth for goals, quests, completions, rewards, private proof, notifications, and preferences. Groq-backed roadmap generation runs through the authenticated Vercel API. The complete data and security setup is in [docs/SUPABASE_PRODUCTION_IMPLEMENTATION.md](docs/SUPABASE_PRODUCTION_IMPLEMENTATION.md).
 
 ## Usage of Codex
 We used Codex extensively throughout the development of our project, with GPT-5.6 playing a central role in both the technical implementation and the creative development process.
@@ -110,6 +111,7 @@ We did not use Codex as a one-click project generator. Instead, we treated it as
 
 This workflow allowed us to move quickly without sacrificing creativity or technical depth. Codex gave us the ability to experiment with ambitious ideas, build a polished interactive experience, and handle complex engineering tasks within the limited timeframe of the hackathon.
 
+<<<<<<< HEAD
 ## Screens / Modules
 
 ### Wellcome Screen
@@ -123,3 +125,6 @@ This workflow allowed us to move quickly without sacrificing creativity or techn
 ### Privacy and trust
 
 ![Privacy and trust](assets/screens/privacy%20and%20trust.png)
+=======
+APK Link: https://drive.google.com/file/d/1SqtAEGkRww572so_wmJjL3MKV9mkU2xW/view?usp=drive_link
+>>>>>>> 51d2fc5ae733f6d1ee69f313b35a3fa07b827096

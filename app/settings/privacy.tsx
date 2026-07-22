@@ -28,7 +28,7 @@ export default function PrivacyScreen() {
       <Surface padding="large" style={styles.endpoint}>
         <View style={styles.endpointTop}>{isLiveApiConfigured ? <Database size={22} color={colors.success} /> : <CloudOff size={22} color={colors.coral} />}<View style={styles.copy}><Typography variant="heading">Endpoint mode</Typography><Typography variant="body" color={colors.inkSecondary}>{isLiveApiConfigured ? 'Live API base URL configured.' : 'Presentation mock adapter active. No backend URL is configured.'}</Typography></View><Chip label={isLiveApiConfigured ? 'Live contract' : 'Mock contract'} tone={isLiveApiConfigured ? 'success' : 'coral'} /></View>
         <View style={styles.path}><CheckCircle2 size={16} color={colors.success} /><Typography variant="micro">Open example: {endpoints.questComplete(':questId')}</Typography></View>
-        <Typography variant="micro" color={colors.inkSecondary}>Set EXPO_PUBLIC_API_BASE_URL to connect teammate-owned endpoints. Authorization and row-level policy must still be enforced by that backend.</Typography>
+        <Typography variant="micro" color={colors.inkSecondary}>Private AI requests go through Odyssey&apos;s authenticated Vercel API. Supabase row-level policies still protect account data.</Typography>
       </Surface>
     </LivingScreen>
   );
